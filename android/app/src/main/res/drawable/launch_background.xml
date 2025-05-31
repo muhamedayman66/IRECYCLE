@@ -1,0 +1,11 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- الخلفية بنفس لون الـ Splash في Flutter -->
+    <item android:drawable="#328957" />
+    
+    <!-- اللوجو في النص -->
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/recycle" />
+    </item>
+</layer-list>
