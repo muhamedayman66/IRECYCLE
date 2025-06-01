@@ -447,14 +447,15 @@ class RecycleBagScreenState extends State<RecycleBagScreen> {
                 children: [
                   GestureDetector(
                     onTap:
-                        item['quantity'] > 1
+                        item['quantity'] >
+                                5 // Check if quantity is greater than 5
                             ? () {
                               setState(() {
                                 item['quantity'] -= 1;
                                 updateRecycleBagInPrefs();
                               });
                             }
-                            : null,
+                            : null, // If quantity is 5 or less, do nothing (or disable button visually)
                     child: Container(
                       width: 30,
                       height: 30,

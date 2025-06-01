@@ -1,6 +1,6 @@
 class ApiConstants {
   //static const String baseUrl = 'http://10.0.2.2:8000';
-  static const String baseUrl = 'https://cf81-156-209-67-30.ngrok-free.app';
+  static const String baseUrl = 'https://6ca3-156-209-112-152.ngrok-free.app';
 
   // User-related endpoints
   static const String registers = '$baseUrl/api/registers/';
@@ -57,8 +57,10 @@ class ApiConstants {
       '$baseUrl/api/delivery/notifications/$email';
 
   static String markDeliveryNotificationAsRead(int notificationId) =>
-      '$baseUrl/delivery/notifications/$notificationId/mark_as_read/';
+      '$baseUrl/api/delivery/notifications/$notificationId/mark_as_read/';
 
+  static String clearDeliveryNotifications(String email) =>
+      '$baseUrl/api/delivery/notifications/$email/clear/';
   // Order and recycle bag endpoints
   static String userOrders(String email) => '$baseUrl/api/user_orders/$email/';
   static const String placeOrder = '$baseUrl/api/place_order/';

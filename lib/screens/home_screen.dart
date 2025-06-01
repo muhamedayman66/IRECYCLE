@@ -53,9 +53,9 @@ class HomeScreen extends StatelessWidget {
     final theme = AppTheme.light.colorScheme;
     final size = MediaQuery.of(context).size;
 
-    return Scaffold(
-      backgroundColor: theme.secondary,
-      body: Column(
+    return Container(
+      color: theme.secondary,
+      child: Column(
         children: [
           _buildHeader(context, size, theme),
           Expanded(child: _buildContent(context, size, theme)),
@@ -122,7 +122,11 @@ class HomeScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => NotificationScreen()),
+                  MaterialPageRoute(
+                    builder:
+                        (context) =>
+                            NotificationScreen(email: "user@example.com"),
+                  ),
                 );
               },
               icon: Icon(Icons.notifications_none_outlined),
@@ -406,7 +410,7 @@ Widget _buildPointsCard(BuildContext context, Size size, ColorScheme theme) {
             IconButton(
               color: theme.primary,
               onPressed: () {
-                Navigator.pushNamed(context, RoutesName.Balance);
+                Navigator.pushNamed(context, RoutesName.balance);
               },
               icon: Icon(Icons.chevron_right),
             ),

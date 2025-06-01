@@ -753,7 +753,7 @@ def get_delivery_dashboard(request, email):
         if not delivery_boy:
             return Response({'error': 'Delivery Boy not found'}, status=404)
 
-        total_orders_delivered = delivery_boy.total_orders_delivered
+        total_orders_delivered = DeliveryAssignment.objects.filter(delivery_boy=delivery_boy, status='delivered').count()
         total_points = delivery_boy.points
         average_rating = delivery_boy.average_rating
 

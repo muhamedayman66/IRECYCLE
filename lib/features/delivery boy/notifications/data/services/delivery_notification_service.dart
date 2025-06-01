@@ -11,10 +11,12 @@ class DeliveryNotificationService {
       );
 
       if (response.statusCode == 200) {
-        List<dynamic> data = jsonDecode(response.body);
+        List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
         return data.map((json) => DeliveryNotification.fromJson(json)).toList();
       } else {
-        throw Exception('Failed to load notifications: ${response.body}');
+        throw Exception(
+          'Failed to load notifications: ${utf8.decode(response.bodyBytes)}',
+        );
       }
     } catch (e) {
       throw Exception('Error fetching notifications: $e');
@@ -29,11 +31,28 @@ class DeliveryNotificationService {
 
       if (response.statusCode != 200) {
         throw Exception(
-          'Failed to mark notification as read: ${response.body}',
+          'Failed to mark notification as read: ${utf8.decode(response.bodyBytes)}',
         );
       }
     } catch (e) {
       throw Exception('Error marking notification as read: $e');
+    }
+  }
+
+  Future<void> clearAllNotifications(String email) async {
+    try {
+      final response = await http.delete(
+        // Changed back to http.delete
+        Uri.parse(ApiConstants.clearDeliveryNotifications(email)),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Failed to clear all notifications: ${utf8.decode(response.bodyBytes)}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Error clearing all notifications: $e');
     }
   }
 }

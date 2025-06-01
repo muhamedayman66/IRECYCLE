@@ -204,7 +204,7 @@ class DeliveryBoy(models.Model):
             
             # حساب المكافآت (10 جنيه لكل 100 نقطة)
             # Ensure rewards are calculated based on the current, potentially modified, points
-            delivery_boy.rewards = (delivery_boy.points // 100) * 10
+            delivery_boy.rewards = delivery_boy.points // 20 # 1 EGP for every 20 points
             
             delivery_boy.save()
         return True

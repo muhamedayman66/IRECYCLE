@@ -9,12 +9,11 @@ import 'package:graduation_project11/core/themes/app__theme.dart';
 import 'package:graduation_project11/core/widgets/custom_appbar.dart';
 import 'package:graduation_project11/features/recycling/presentation/screens/rewarding_screen.dart';
 import 'package:graduation_project11/core/utils/shared_keys.dart';
-import 'package:graduation_project11/features/home/presentation/screen/home_screen.dart'; // Added for navigation
+import 'package:graduation_project11/features/home/presentation/screen/home_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart'; // Required for SystemNavigator
+import 'package:flutter/services.dart';
 
-// إضافة Notification لتحديث الإحصائيات
 class UpdateStatsNotification extends Notification {
   final String email;
   UpdateStatsNotification(this.email);
@@ -35,13 +34,14 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
   String? error;
   Map<String, dynamic>? orderData;
   String? _lastStatus;
-  DateTime? _lastUpdateTime;
+  // DateTime? _lastUpdateTime; // Not currently used, can be removed if not needed
   Timer? _refreshTimer;
   bool _isChatOpen = false;
   String? _assignmentId;
-  String?
-  _fetchedUserGovernorate; // To store governorate from SharedPreferences
-  String? _profileUserGovernorate; // To store governorate from User Profile API
+  int? _numericAssignmentId;
+  Set<int> _unreadAssignments = {};
+  String? _fetchedUserGovernorate;
+  String? _profileUserGovernorate;
   bool _showRejectedFullScreenMessage = false;
   String? _rejectedReasonForFullScreenMessage;
 
@@ -61,14 +61,9 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
 
   static Color getStatusColor(String? status) {
     if (status == null) return Colors.grey;
-
     switch (status.toLowerCase()) {
       case 'pending':
         return Colors.orange;
-      case 'accepted':
-        return Colors.blue;
-      case 'in_transit':
-        return Colors.indigo;
       case 'delivered':
         return Colors.green;
       case 'rejected':
@@ -104,18 +99,41 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
   @override
   void initState() {
     super.initState();
-    _persistResumeState(); // Save email on init
-    _fetchOrderStatus(
-      showLoadingIndicator: true,
-    ); // Initial load shows indicator
-    // تحديث كل 30 ثانية
-    _refreshTimer = Timer.periodic(Duration(seconds: 30), (timer) {
-      if (mounted) {
-        _fetchOrderStatus(
-          showLoadingIndicator: false,
-        ); // Background refresh hides indicator
+    _persistResumeState();
+    _loadInitialData();
+    _refreshTimer = Timer.periodic(Duration(seconds: 15), (timer) {
+      // Reduced refresh interval
+      if (mounted && !_isChatOpen) {
+        // Don't refresh if chat is open
+        _fetchOrderStatus(showLoadingIndicator: false);
+        // _loadUnreadAssignments will be called within _fetchOrderStatus
       }
     });
+  }
+
+  Future<void> _loadInitialData() async {
+    await _fetchOrderStatus(showLoadingIndicator: true);
+    await _loadUnreadAssignments();
+  }
+
+  Future<void> _loadUnreadAssignments() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> unreadIdsAsString =
+        prefs.getStringList(SharedKeys.unreadChatAssignments) ?? [];
+    if (mounted) {
+      final newUnreadSet =
+          unreadIdsAsString
+              .map((id) => int.tryParse(id) ?? -1)
+              .where((id) => id != -1)
+              .toSet();
+      if (_unreadAssignments.length != newUnreadSet.length ||
+          !_unreadAssignments.containsAll(newUnreadSet)) {
+        setState(() {
+          _unreadAssignments = newUnreadSet;
+        });
+      }
+    }
+    print("OrderStatusScreen: Loaded unread assignments: $_unreadAssignments");
   }
 
   // _setOrderStatusFlag is removed as its functionality is replaced by _persistResumeState and _clearResumeState
@@ -145,6 +163,8 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
 
   Future<void> _fetchOrderStatus({bool showLoadingIndicator = true}) async {
     if (!mounted) return;
+
+    await _loadUnreadAssignments(); // Load unread status before fetching order status
 
     if (showLoadingIndicator) {
       setState(() {
@@ -256,65 +276,74 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
             if (assignmentResponse.statusCode == 200) {
               final assignmentData = json.decode(assignmentResponse.body);
               _assignmentId = assignmentData['id']?.toString();
-              data['assignment_id'] = _assignmentId;
-              print('Found assignment ID: ${_assignmentId}');
-              if (_assignmentId != null) {
+              _numericAssignmentId = assignmentData['id']; // Store numeric ID
+              data['assignment_id'] =
+                  _assignmentId; // Keep string for existing logic if any
+              print(
+                'Found assignment ID: $_assignmentId (Numeric: $_numericAssignmentId)',
+              );
+              if (_numericAssignmentId != null) {
                 final prefs = await SharedPreferences.getInstance();
-                final assignmentIdInt = int.tryParse(_assignmentId!);
-                if (assignmentIdInt != null) {
-                  await prefs.setInt(
-                    SharedKeys.lastAssignmentId,
-                    assignmentIdInt,
-                  );
-                  print(
-                    'Stored assignment ID in SharedPreferences: $assignmentIdInt',
-                  );
-                }
+                await prefs.setInt(
+                  SharedKeys.lastAssignmentId,
+                  _numericAssignmentId!,
+                );
+                print(
+                  'Stored assignment ID in SharedPreferences: $_numericAssignmentId',
+                );
               }
             } else {
               print(
                 'Failed to get assignment ID: ${assignmentResponse.statusCode}',
               );
               print('Response: ${assignmentResponse.body}');
-              if (data['id'] != null) {
-                _assignmentId = data['id'].toString();
+              if (data['id'] != null && data['id'] is int) {
+                _numericAssignmentId = data['id'];
+                _assignmentId = _numericAssignmentId.toString();
                 data['assignment_id'] = _assignmentId;
                 print(
-                  'Using order ID as fallback assignment ID: ${_assignmentId}',
+                  'Using order ID as fallback assignment ID: $_assignmentId (Numeric: $_numericAssignmentId)',
                 );
                 final prefs = await SharedPreferences.getInstance();
-                final orderIdInt = int.tryParse(_assignmentId!);
-                if (orderIdInt != null) {
-                  await prefs.setInt(SharedKeys.lastAssignmentId, orderIdInt);
-                  print(
-                    'Stored order ID as assignment ID in SharedPreferences: $orderIdInt',
-                  );
-                }
+                await prefs.setInt(
+                  SharedKeys.lastAssignmentId,
+                  _numericAssignmentId!,
+                );
+                print(
+                  'Stored order ID as assignment ID in SharedPreferences: $_numericAssignmentId',
+                );
               }
             }
           } catch (e) {
             print('Error fetching assignment ID: $e');
-            if (data['id'] != null) {
-              _assignmentId = data['id'].toString();
+            if (data['id'] != null && data['id'] is int) {
+              _numericAssignmentId = data['id'];
+              _assignmentId = _numericAssignmentId.toString();
               data['assignment_id'] = _assignmentId;
               print(
-                'Using order ID as fallback assignment ID after error: ${_assignmentId}',
+                'Using order ID as fallback assignment ID after error: $_assignmentId (Numeric: $_numericAssignmentId)',
               );
               try {
                 final prefs = await SharedPreferences.getInstance();
-                final orderIdInt = int.tryParse(_assignmentId!);
-                if (orderIdInt != null) {
-                  await prefs.setInt(SharedKeys.lastAssignmentId, orderIdInt);
-                  print(
-                    'Stored order ID as assignment ID in SharedPreferences after error: $orderIdInt',
-                  );
-                }
-              } catch (e) {
-                print('Error storing assignment ID in SharedPreferences: $e');
+                await prefs.setInt(
+                  SharedKeys.lastAssignmentId,
+                  _numericAssignmentId!,
+                );
+                print(
+                  'Stored order ID as assignment ID in SharedPreferences after error: $_numericAssignmentId',
+                );
+              } catch (prefsError) {
+                print(
+                  'Error storing assignment ID in SharedPreferences: $prefsError',
+                );
               }
             }
           }
         } else {
+          // Ensure _numericAssignmentId is also set if _assignmentId exists from previous fetch
+          if (_assignmentId != null && _numericAssignmentId == null) {
+            _numericAssignmentId = int.tryParse(_assignmentId!);
+          }
           data['assignment_id'] = _assignmentId;
         }
 

@@ -3,15 +3,17 @@ import 'package:graduation_project11/core/api/api_constants.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:graduation_project11/core/utils/shared_keys.dart';
 
 class ChatWidget extends StatefulWidget {
   final int assignmentId;
   final String userEmail; // Represents the customer's email
   final String deliveryBoyEmail; // Represents the delivery boy's email
   final String
-      currentSenderEmail; // Email of the person currently using the chat
+  currentSenderEmail; // Email of the person currently using the chat
   final String
-      currentSenderType; // Type of the current sender ('user' or 'delivery_boy')
+  currentSenderType; // Type of the current sender ('user' or 'delivery_boy')
 
   const ChatWidget({
     Key? key,
@@ -38,10 +40,13 @@ class _ChatWidgetState extends State<ChatWidget> {
   @override
   void initState() {
     super.initState();
+    _markChatAsRead(); // Mark as read when chat is opened
     _loadMessages(); // Initial load
     _refreshTimer = Timer.periodic(Duration(seconds: 5), (timer) {
       if (mounted) {
-        _loadMessages(); // Subsequent loads (refreshes)
+        _loadMessages(
+          isPeriodicRefresh: true,
+        ); // Pass a flag for periodic refreshes
       }
     });
   }
@@ -54,16 +59,45 @@ class _ChatWidgetState extends State<ChatWidget> {
     super.dispose();
   }
 
-  Future<void> _loadMessages() async {
-    if (_isFetchingMessages) return; // Prevent concurrent fetches
+  Future<void> _markChatAsRead() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> unreadAssignments =
+        prefs.getStringList(SharedKeys.unreadChatAssignments) ?? [];
+    if (unreadAssignments.contains(widget.assignmentId.toString())) {
+      unreadAssignments.remove(widget.assignmentId.toString());
+      await prefs.setStringList(
+        SharedKeys.unreadChatAssignments,
+        unreadAssignments,
+      );
+      print('Chat for assignment ${widget.assignmentId} marked as read.');
+    }
+  }
 
-    setState(() {
-      _isFetchingMessages = true;
-      // Do not reset _messages here to avoid flicker during refresh
-    });
+  Future<void> _markChatAsUnread() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> unreadAssignments =
+        prefs.getStringList(SharedKeys.unreadChatAssignments) ?? [];
+    if (!unreadAssignments.contains(widget.assignmentId.toString())) {
+      unreadAssignments.add(widget.assignmentId.toString());
+      await prefs.setStringList(
+        SharedKeys.unreadChatAssignments,
+        unreadAssignments,
+      );
+      print('Chat for assignment ${widget.assignmentId} marked as UNREAD.');
+    }
+  }
 
-    bool currentLoadAttemptIsInitial =
-        _isInitialLoad; // Capture state for this attempt
+  Future<void> _loadMessages({bool isPeriodicRefresh = false}) async {
+    if (_isFetchingMessages && !isPeriodicRefresh) return;
+
+    if (!isPeriodicRefresh) {
+      // Only show full loading state for manual/initial loads
+      setState(() {
+        _isFetchingMessages = true;
+      });
+    }
+
+    bool currentLoadAttemptIsInitial = _isInitialLoad;
 
     try {
       final response = await http.get(
@@ -77,23 +111,62 @@ class _ChatWidgetState extends State<ChatWidget> {
 
       if (!mounted) return;
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
         final newMessages = List<Map<String, dynamic>>.from(data);
+        bool hasNewMessagesFromOther = false;
 
-        // Only update state if messages have actually changed
-        // This prevents unnecessary rebuilds and flicker if the data is the same
         if (json.encode(_messages) != json.encode(newMessages)) {
+          // Check if there are new messages from the other party
+          if (newMessages.length > _messages.length) {
+            for (int i = _messages.length; i < newMessages.length; i++) {
+              if (newMessages[i]['sender_id'] != widget.currentSenderEmail) {
+                hasNewMessagesFromOther = true;
+                break;
+              }
+            }
+          } else {
+            // Also check if existing messages changed sender (less likely but good to cover)
+            for (var msg in newMessages) {
+              if (msg['sender_id'] != widget.currentSenderEmail &&
+                  !_messages.any(
+                    (oldMsg) =>
+                        oldMsg['id'] == msg['id'] &&
+                        oldMsg['sender_id'] == msg['sender_id'],
+                  )) {
+                // This logic might be complex if IDs are not stable or present.
+                // A simpler check: if any message in newMessages is not from currentSenderEmail
+                // and wasn't in the old _messages list (or its content changed).
+                // For now, focusing on new incoming messages.
+              }
+            }
+            // A simpler heuristic for periodic refresh: if the latest message is new and not from me.
+            if (isPeriodicRefresh &&
+                newMessages.isNotEmpty &&
+                _messages.isNotEmpty &&
+                newMessages.last['id'] != _messages.last['id']) {
+              if (newMessages.last['sender_id'] != widget.currentSenderEmail) {
+                hasNewMessagesFromOther = true;
+              }
+            } else if (isPeriodicRefresh &&
+                newMessages.length > _messages.length &&
+                newMessages.last['sender_id'] != widget.currentSenderEmail) {
+              hasNewMessagesFromOther = true;
+            }
+          }
+
           setState(() {
             _messages = newMessages;
           });
+
+          if (hasNewMessagesFromOther && isPeriodicRefresh) {
+            // Only mark unread on periodic refresh if new message from other
+            _markChatAsUnread();
+          }
         }
 
-        if (_messages.isNotEmpty) {
-          // Scroll to bottom only if new messages were actually added or on initial load
+        if (_messages.isNotEmpty && !isPeriodicRefresh) {
+          // Scroll only on manual/initial load with messages
           Future.delayed(Duration(milliseconds: 100), () {
             if (_scrollController.hasClients) {
               _scrollController.animateTo(
@@ -105,31 +178,23 @@ class _ChatWidgetState extends State<ChatWidget> {
           });
         }
       } else {
-        final errorBody = json.decode(response.body);
-        final errorMessage = errorBody['error'] ?? 'فشل في تحميل الرسائل';
-        print('Error loading messages: $errorMessage');
-        // Show SnackBar on error only if it's an initial load or no messages are currently displayed
-        if (currentLoadAttemptIsInitial || _messages.isEmpty) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(errorMessage)));
-        }
+        final errorBody = json.decode(utf8.decode(response.bodyBytes));
+        final serverErrorMessage =
+            errorBody['error'] ?? 'Failed to load messages.';
+        final displayErrorMessage =
+            (serverErrorMessage == 'فشل في تحميل الرسائل')
+                ? 'Failed to load messages.'
+                : serverErrorMessage;
+        print('Error loading messages: $displayErrorMessage');
       }
     } catch (e) {
       if (!mounted) return;
       print('Error loading messages: $e');
-      // Show SnackBar on error only if it's an initial load or no messages are currently displayed
-      if (currentLoadAttemptIsInitial || _messages.isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('حدث خطأ أثناء تحميل الرسائل')));
-      }
     } finally {
       if (mounted) {
         setState(() {
           _isFetchingMessages = false;
           if (currentLoadAttemptIsInitial) {
-            // Only set _isInitialLoad to false after the first attempt
             _isInitialLoad = false;
           }
         });
@@ -178,11 +243,14 @@ class _ChatWidgetState extends State<ChatWidget> {
           'Content-Type': 'application/json; charset=utf-8',
           'Accept': 'application/json',
         },
-        body: json.encode({
-          'sender_type': widget.currentSenderType,
-          'sender_id': widget.currentSenderEmail,
-          'message': message,
-        }),
+        body: utf8.encode(
+          json.encode({
+            // Ensure body is UTF-8 encoded
+            'sender_type': widget.currentSenderType,
+            'sender_id': widget.currentSenderEmail,
+            'message': message,
+          }),
+        ),
       );
 
       print('Response status: ${response.statusCode}');
@@ -197,22 +265,21 @@ class _ChatWidgetState extends State<ChatWidget> {
         // It will remain visible until the next _loadMessages reconciles.
         // This addresses the user's concern about messages disappearing.
         if (mounted) {
-          final errorBody = json.decode(response.body);
-          final errorMessage =
-              errorBody['error'] ?? 'فشل في إرسال الرسالة. حاول مرة أخرى.';
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(errorMessage)));
+          final errorBody = json.decode(utf8.decode(response.bodyBytes));
+          final serverErrorMessage =
+              errorBody['error'] ??
+              'Failed to send message. Try again.'; // Translated
+          final displayErrorMessage =
+              (serverErrorMessage == 'فشل في إرسال الرسالة. حاول مرة أخرى.')
+                  ? 'Failed to send message. Try again.'
+                  : serverErrorMessage;
+          print('Error sending message: $displayErrorMessage');
+          // SnackBar removed
         }
       }
     } catch (e) {
       print('Error sending message: $e');
-      // On exception, also DO NOT remove the optimistic message immediately.
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('حدث خطأ أثناء إرسال الرسالة')));
-      }
+      // SnackBar removed
     } finally {
       if (mounted) {
         setState(() {
@@ -233,61 +300,64 @@ class _ChatWidgetState extends State<ChatWidget> {
       child: Column(
         children: [
           Expanded(
-            child: _isInitialLoad &&
-                    _isFetchingMessages // Show loader only on the very first fetch attempt
-                ? Center(child: CircularProgressIndicator())
-                : _messages.isEmpty
+            child:
+                _isInitialLoad &&
+                        _isFetchingMessages // Show loader only on the very first fetch attempt
+                    ? Center(child: CircularProgressIndicator())
+                    : _messages.isEmpty
                     ? Center(
-                        child: Text(
-                          'ابدأ محادثة جديدة',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontStyle: FontStyle.italic,
-                          ),
+                      child: Text(
+                        'Start a new conversation', // Translated
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
                         ),
-                      )
+                      ),
+                    )
                     : ListView.builder(
-                        controller: _scrollController,
-                        padding: EdgeInsets.all(8),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, index) {
-                          final message = _messages[index];
-                          // A message is "mine" if the sender_id matches the currentSenderEmail
-                          final isMe =
-                              message['sender_id'] == widget.currentSenderEmail;
+                      controller: _scrollController,
+                      padding: EdgeInsets.all(8),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) {
+                        final message = _messages[index];
+                        // A message is "mine" if the sender_id matches the currentSenderEmail
+                        final isMe =
+                            message['sender_id'] == widget.currentSenderEmail;
 
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: 8,
-                              left: isMe ? 40 : 8,
-                              right: isMe ? 8 : 40,
-                            ),
-                            child: Align(
-                              alignment: isMe
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isMe
-                                      ? Theme.of(context).primaryColor
-                                      : Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  message['message'] ?? '',
-                                  style: TextStyle(
-                                    color: isMe ? Colors.white : Colors.black87,
-                                  ),
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: 8,
+                            left: isMe ? 40 : 8,
+                            right: isMe ? 8 : 40,
+                          ),
+                          child: Align(
+                            alignment:
+                                isMe
+                                    ? Alignment.centerRight
+                                    : Alignment.centerLeft,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    isMe
+                                        ? Theme.of(context).primaryColor
+                                        : Colors.grey[300],
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                message['message'] ?? '',
+                                style: TextStyle(
+                                  color: isMe ? Colors.white : Colors.black87,
                                 ),
                               ),
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
+                    ),
           ),
           Divider(height: 1),
           Container(
@@ -298,7 +368,7 @@ class _ChatWidgetState extends State<ChatWidget> {
                   child: TextField(
                     controller: _messageController,
                     decoration: InputDecoration(
-                      hintText: 'اكتب رسالة...',
+                      hintText: 'Type a message...', // Translated
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -313,13 +383,14 @@ class _ChatWidgetState extends State<ChatWidget> {
                 ),
                 SizedBox(width: 8),
                 IconButton(
-                  icon: _isSending
-                      ? SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(Icons.send),
+                  icon:
+                      _isSending
+                          ? SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : Icon(Icons.send),
                   onPressed: _isSending ? null : _sendMessage,
                   color: Theme.of(context).primaryColor,
                 ),

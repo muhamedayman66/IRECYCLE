@@ -40,9 +40,9 @@ class _DeliveryVoucherScreenState extends State<DeliveryVoucherScreen> {
     String? email = prefs.getString(SharedKeys.userEmail);
 
     if (email == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please log in first")));
+      // ScaffoldMessenger.of(
+      //   context,
+      // ).showSnackBar(const SnackBar(content: Text("Please log in first")));
       return;
     }
 
@@ -128,9 +128,9 @@ class _DeliveryVoucherScreenState extends State<DeliveryVoucherScreen> {
       }
     } catch (e) {
       print('Error loading user data or QR status: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error loading data: $e')));
+      // ScaffoldMessenger.of(
+      //   context,
+      // ).showSnackBar(SnackBar(content: Text('Error loading data: $e')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -207,18 +207,18 @@ class _DeliveryVoucherScreenState extends State<DeliveryVoucherScreen> {
                 ),
           ),
         );
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(content: Text('Voucher generated successfully')),
-        );
+        // scaffoldMessenger.showSnackBar(
+        //   const SnackBar(content: Text('Voucher generated successfully')),
+        // );
       } else {
         final errorData = json.decode(voucherResponse.body);
         throw Exception(errorData['error'] ?? 'Failed to generate voucher');
       }
     } catch (e) {
       print('Error generating voucher: $e');
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
-      );
+      // scaffoldMessenger.showSnackBar(
+      //   SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+      // );
     } finally {
       if (mounted) {
         setState(() {
@@ -405,8 +405,7 @@ class _DeliveryVoucherScreenState extends State<DeliveryVoucherScreen> {
                         ], // Added
                         decoration: InputDecoration(
                           labelText: 'Enter Amount (EGP)',
-                          hintText:
-                              'Min 10 EGP, Max ${_balance.toStringAsFixed(2)} EGP', // Added hint
+                          hintText: 'Min 10 EGP', // Added hint
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
