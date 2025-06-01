@@ -1,38 +1,132 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" dir="ltr">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
-  <base href="$FLUTTER_BASE_HREF">
-
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="graduation_project11">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>graduation_project11</title>
-  <link rel="manifest" href="manifest.json">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IRECYCLE - Empowering Sustainable Futures</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #1a3c34 0%, #2a6b5b 100%);
+      min-height: 100vh;
+      color: #ffffff;
+    }
+    .navbar {
+      background: #F2F2F2;
+      padding: 1rem 2rem;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      z-index: 10;
+    }
+    .hero {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+      text-align: center;
+    }
+    .container {
+      max-width: 700px;
+    }
+    .button {
+      transition: all 0.3s ease-in-out;
+      transform: translateY(0);
+    }
+    .button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+    .nav-link:hover {
+      color: #34d399;
+    }
+    .section {
+      padding: 6rem 2rem;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <nav class="navbar">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-green-400">IRECYCLE</h1>
+      <div class="space-x-6">
+        <a href="#home" class="nav-link text-gray-800 font-semibold text-lg transition duration-300">Home</a>
+        <a href="#about" class="nav-link text-gray-800 font-semibold text-lg transition duration-300">About</a>
+        <a href="#contact" class="nav-link text-gray-800 font-semibold text-lg transition duration-300">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <section id="home" class="hero">
+    <div class="container">
+      <h1 class="text-4xl md:text-6xl font-extrabold mb-6 text-green-300 tracking-tight animate-fade-in">
+        Empowering a Sustainable Tomorrow
+      </h1>
+      <p class="text-lg md:text-2xl mb-10 leading-relaxed text-gray-200">
+        Transform the way you recycle with IRECYCLE. Join a global movement for a cleaner, greener planet.
+      </p>
+      <div class="flex flex-col items-center gap-6">
+        <a href="apk/app-release.apk" download class="button bg-transparent border-2 border-green-500 hover:bg-green-500 text-white font-semibold py-4 px-10 rounded-full text-lg">
+          Download the App (APK)
+        </a>
+        <div class="mt-4">
+          <p class="text-white mb-2">Scan to Download:</p>
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://muhamedayman66.netlify.app/apk/app-release.apk" alt="Download QR Code" class="mx-auto">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="about" class="section hidden">
+    <div class="container">
+      <h2 class="text-4xl md:text-5xl font-bold mb-6 text-green-300">About IRECYCLE</h2>
+      <p class="text-lg md:text-xl mb-6 leading-relaxed text-gray-200">
+        At IRECYCLE, we are passionate about creating a sustainable future through innovative recycling solutions. 
+        Our mission is to empower individuals and communities to reduce waste, promote eco-friendly practices, 
+        and contribute to a healthier planet. By leveraging technology, we make recycling accessible, efficient, 
+        and rewarding for everyone.
+      </p>
+      <p class="text-lg md:text-xl leading-relaxed text-gray-200">
+        Join us in our journey to transform waste into opportunity and build a greener tomorrow, one step at a time.
+      </p>
+    </div>
+  </section>
+
+  <section id="contact" class="section hidden">
+    <div class="container">
+      <h2 class="text-4xl md:text-5xl font-bold mb-6 text-green-300">Contact Us</h2>
+      <p class="text-lg md:text-xl mb-6 leading-relaxed text-gray-200">
+        Have questions or want to get involved? Reach out to us!
+      </p>
+      <p class="text-lg md:text-xl mb-6 leading-relaxed text-gray-200">
+        Email: <a href="mailto:irecycle.eg@gmail.com" class="underline hover:text-green-400">irecycle.eg@gmail.com</a>
+      </p>
+    </div>
+  </section>
+
+  <script>
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href').substring(1);
+        document.querySelectorAll('.hero, .section').forEach(section => {
+          section.classList.add('hidden');
+        });
+        document.getElementById(targetId).classList.remove('hidden');
+      });
+    });
+  </script>
 </body>
 </html>
