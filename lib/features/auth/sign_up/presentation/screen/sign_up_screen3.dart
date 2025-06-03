@@ -46,9 +46,8 @@ class _SignUpScreen3State extends State<SignUpScreen3> {
         );
         if (user == null) {
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('User not found')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('User not found')));
             Navigator.pop(context); // Return to previous screen
           }
           return;
@@ -70,7 +69,7 @@ class _SignUpScreen3State extends State<SignUpScreen3> {
         final updateEndpoint =
             widget.userType.toLowerCase() == 'customer'
                 ? ApiConstants.registerUpdate(id)
-                : ApiConstants.deliveryBoyUpdate(id);
+                : '${ApiConstants.baseUrl}/delivery_boys/$id/update/';
 
         final updateResponse = await http.put(
           Uri.parse(updateEndpoint),

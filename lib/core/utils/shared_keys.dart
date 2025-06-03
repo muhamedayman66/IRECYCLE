@@ -30,14 +30,4 @@ class SharedKeys {
   static const String wasOnOrderStatusScreen =
       'wasOnOrderStatusScreen'; // Will be removed later
   static const String orderStatusResumeEmail = 'orderStatusResumeEmail';
-
-  // Keys for RewardingScreen resume functionality
-  static const String shouldResumeToRewardingScreen =
-      'shouldResumeToRewardingScreen';
-  static const String rewardingScreenTotalPoints = 'rewardingScreenTotalPoints';
-  static const String rewardingScreenAssignmentId =
-      'rewardingScreenAssignmentId';
-
-  // Key for unread chat messages
-  static const String unreadChatAssignments = 'unreadChatAssignments';
 }

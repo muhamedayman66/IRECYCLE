@@ -41,9 +41,9 @@ class _VoucherScreenState extends State<VoucherScreen> {
     String? email = prefs.getString(SharedKeys.userEmail);
 
     if (email == null) {
-      // ScaffoldMessenger.of(
-      //   context,
-      // ).showSnackBar(const SnackBar(content: Text("Please log in first")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please log in first")));
       setState(() {
         _isLoading = false;
       });
@@ -77,19 +77,16 @@ class _VoucherScreenState extends State<VoucherScreen> {
 
           setState(() {
             _hasActiveVoucher = true;
-            _activeVoucherAmount = double.tryParse(
-              activeVoucher['amount'].toString(),
-            );
-            _activeVoucherCode =
-                activeVoucher['code']
-                    as String?; // Assuming 'code' is part of active_voucher
+            _activeVoucherAmount =
+                double.tryParse(activeVoucher['amount'].toString());
+            _activeVoucherCode = activeVoucher['code']
+                as String?; // Assuming 'code' is part of active_voucher
 
             if (rawQrCodeUrl != null && rawQrCodeUrl.isNotEmpty) {
               if (rawQrCodeUrl.startsWith('http')) {
                 _activeVoucherQrCodeUrl = rawQrCodeUrl;
               } else {
-                _activeVoucherQrCodeUrl =
-                    ApiConstants.baseUrl +
+                _activeVoucherQrCodeUrl = ApiConstants.baseUrl +
                     (rawQrCodeUrl.startsWith('/')
                         ? rawQrCodeUrl
                         : '/$rawQrCodeUrl');
@@ -154,15 +151,13 @@ class _VoucherScreenState extends State<VoucherScreen> {
       }
     } catch (e) {
       print('Error loading user data: $e');
-      // if (mounted) {
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     SnackBar(
-      //       content: Text(
-      //         "Error loading data: ${e.toString().replaceAll('Exception: ', '')}",
-      //       ),
-      //     ),
-      //   );
-      // }
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(
+            content: Text(
+                "Error loading data: ${e.toString().replaceAll('Exception: ', '')}")));
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -190,8 +185,7 @@ class _VoucherScreenState extends State<VoucherScreen> {
       if (_hasActiveVoucher) {
         // Check if there's already an active voucher
         throw Exception(
-          'You have an active voucher that needs to be used or expire before generating a new one',
-        );
+            'You have an active voucher that needs to be used or expire before generating a new one');
       }
 
       final String amountText = _amountController.text.trim();
@@ -216,16 +210,16 @@ class _VoucherScreenState extends State<VoucherScreen> {
 
       qrResponse = await http
           .post(
-            Uri.parse(ApiConstants.generateQr), // User's endpoint
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode(requestBody),
-          )
+        Uri.parse(ApiConstants.generateQr), // User's endpoint
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(requestBody),
+      )
           .timeout(
-            const Duration(seconds: 20), // Increased timeout
-            onTimeout: () {
-              throw Exception('Request timed out. Please try again.');
-            },
-          );
+        const Duration(seconds: 20), // Increased timeout
+        onTimeout: () {
+          throw Exception('Request timed out. Please try again.');
+        },
+      );
 
       print(
         'QR Response received at: ${DateTime.now().toUtc()} - Status: ${qrResponse.statusCode} - Body: ${qrResponse.body}',
@@ -236,16 +230,14 @@ class _VoucherScreenState extends State<VoucherScreen> {
         // Assuming responseData contains 'voucher' map with 'code', 'amount', 'expires_at', 'qr_code_url'
         final voucher = responseData['voucher'];
         final String newVoucherCode = voucher['code'];
-        final double newVoucherAmount = double.parse(
-          voucher['amount'].toString(),
-        );
+        final double newVoucherAmount =
+            double.parse(voucher['amount'].toString());
         final DateTime newVoucherExpiry = DateTime.parse(voucher['expires_at']);
         String? newQrCodeUrl = voucher['qr_code_url'];
 
         if (newQrCodeUrl != null && newQrCodeUrl.isNotEmpty) {
           if (!newQrCodeUrl.startsWith('http')) {
-            newQrCodeUrl =
-                ApiConstants.baseUrl +
+            newQrCodeUrl = ApiConstants.baseUrl +
                 (newQrCodeUrl.startsWith('/')
                     ? newQrCodeUrl
                     : '/$newQrCodeUrl');
@@ -253,14 +245,11 @@ class _VoucherScreenState extends State<VoucherScreen> {
         }
 
         // Update balance using remaining_rewards from API response
-        final int newRewards =
-            responseData['remaining_rewards'] ??
+        final int newRewards = responseData['remaining_rewards'] ??
             _rewardBalance; // Use remaining_rewards
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt(
-          SharedKeys.balanceKey(_userEmail!),
-          newRewards,
-        ); // Persist new balance
+        await prefs.setInt(SharedKeys.balanceKey(_userEmail!),
+            newRewards); // Persist new balance
 
         setState(() {
           // Update UI state
@@ -280,22 +269,20 @@ class _VoucherScreenState extends State<VoucherScreen> {
           // Using pushReplacement as in delivery_voucher_screen
           context,
           MaterialPageRoute(
-            builder:
-                (context) => QrCodeScreen(
-                  // Pass data similar to DeliveryQrCodeScreen
-                  code: newVoucherCode, // Pass the code
-                  amount:
-                      newVoucherAmount
-                          .toString(), // QrCodeScreen expects String
-                  userEmail: _userEmail!,
-                  qrCodeUrl: newQrCodeUrl, // Pass the direct QR URL
-                  voucherExpiryDate: newVoucherExpiry, // Pass DateTime object
-                ),
+            builder: (context) => QrCodeScreen(
+              // Pass data similar to DeliveryQrCodeScreen
+              code: newVoucherCode, // Pass the code
+              amount:
+                  newVoucherAmount.toString(), // QrCodeScreen expects String
+              userEmail: _userEmail!,
+              qrCodeUrl: newQrCodeUrl, // Pass the direct QR URL
+              voucherExpiryDate: newVoucherExpiry, // Pass DateTime object
+            ),
           ),
         );
-        // scaffoldMessenger.showSnackBar(
-        //   const SnackBar(content: Text('Voucher generated successfully')),
-        // );
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(content: Text('Voucher generated successfully')),
+        );
       } else {
         final errorData = json.decode(qrResponse.body);
         throw Exception(errorData['error'] ?? 'Failed to generate voucher');
@@ -304,9 +291,8 @@ class _VoucherScreenState extends State<VoucherScreen> {
       print(
         'Error generating voucher at: ${DateTime.now().toUtc()} - Error: $e',
       );
-      // scaffoldMessenger.showSnackBar(
-      //   SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
-      // );
+      scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))));
     } finally {
       if (mounted) {
         setState(() {
@@ -333,208 +319,188 @@ class _VoucherScreenState extends State<VoucherScreen> {
           },
         ),
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_hasActiveVoucher) ...[
-                      Card(
-                        elevation: 4,
-                        color: theme.primaryColor, // Using theme.primaryColor
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              const Text(
-                                'Active Voucher Found', // Changed text
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_hasActiveVoucher) ...[
+                    Card(
+                      elevation: 4,
+                      color: theme.primaryColor, // Using theme.primaryColor
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Active Voucher Found', // Changed text
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
-                              const SizedBox(height: 10),
-                              if (_activeVoucherAmount != null)
-                                Text(
-                                  'Amount: ${_activeVoucherAmount!.toStringAsFixed(2)} EGP',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              if (_activeVoucherCode != null) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Code: ${_activeVoucherCode!}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 8),
-                              if (_activeVoucherExpiryDate != null)
-                                Text(
-                                  'Expires on: ${DateFormat('MMM dd, yyyy hh:mm a').format(_activeVoucherExpiryDate!)}',
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              const SizedBox(height: 16),
-                              if (_activeVoucherQrCodeUrl != null &&
-                                  _activeVoucherQrCodeUrl!.isNotEmpty)
-                                Image.network(
-                                  _activeVoucherQrCodeUrl!,
-                                  height: 150, // Adjusted size
-                                  width: 150, // Adjusted size
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    print(
-                                      'Error loading QR code image: $error',
-                                    );
-                                    return const Text(
-                                      'Error loading QR code image.',
-                                      style: TextStyle(color: Colors.white),
-                                    );
-                                  },
-                                  loadingBuilder: (
-                                    BuildContext context,
-                                    Widget child,
-                                    ImageChunkEvent? loadingProgress,
-                                  ) {
-                                    if (loadingProgress == null) return child;
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        value:
-                                            loadingProgress
-                                                        .expectedTotalBytes !=
-                                                    null
-                                                ? loadingProgress
-                                                        .cumulativeBytesLoaded /
-                                                    loadingProgress
-                                                        .expectedTotalBytes!
-                                                : null,
-                                      ),
-                                    );
-                                  },
-                                )
-                              else
-                                const Text(
-                                  'QR code image not available.',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              const SizedBox(height: 16),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ] else ...[
-                      // Balance Card
-                      Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(
-                              15,
-                            ), // Added for consistency
-                            gradient: LinearGradient(
-                              colors: [
-                                AppTheme.light.colorScheme.primary,
-                                AppTheme.light.colorScheme.primary.withOpacity(
-                                  0.8,
-                                ),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
                             ),
-                          ),
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              const Text(
-                                'Current Reward Balance', // Changed text
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+                            const SizedBox(height: 10),
+                            if (_activeVoucherAmount != null)
+                              Text(
+                                'Amount: ${_activeVoucherAmount!.toStringAsFixed(2)} EGP',
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 16),
                               ),
+                            if (_activeVoucherCode != null) ...[
                               const SizedBox(height: 8),
                               Text(
-                                '${_rewardBalance.toStringAsFixed(0)} EGP', // User balance is int
+                                'Code: ${_activeVoucherCode!}',
                                 style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+                                    color: Colors.white, fontSize: 16),
                               ),
                             ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Amount Input
-                      TextField(
-                        controller: _amountController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: InputDecoration(
-                          labelText: 'Enter Amount (EGP)',
-                          hintText: 'Min 10 EGP',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          prefixIcon: const Icon(Icons.attach_money),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Generate Button
-                      ElevatedButton(
-                        onPressed:
-                            _isRequestInProgress ? null : _generateVoucher,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              AppTheme.light.colorScheme.primary, // Added style
-                          foregroundColor: Colors.white, // Added style
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          disabledBackgroundColor: AppTheme
-                              .light
-                              .colorScheme
-                              .primary
-                              .withOpacity(0.7),
-                        ),
-                        child:
-                            _isRequestInProgress
-                                ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
+                            const SizedBox(height: 8),
+                            if (_activeVoucherExpiryDate != null)
+                              Text(
+                                'Expires on: ${DateFormat('MMM dd, yyyy hh:mm a').format(_activeVoucherExpiryDate!)}',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            const SizedBox(height: 16),
+                            if (_activeVoucherQrCodeUrl != null &&
+                                _activeVoucherQrCodeUrl!.isNotEmpty)
+                              Image.network(
+                                _activeVoucherQrCodeUrl!,
+                                height: 150, // Adjusted size
+                                width: 150, // Adjusted size
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) {
+                                  print('Error loading QR code image: $error');
+                                  return const Text(
+                                    'Error loading QR code image.',
+                                    style: TextStyle(color: Colors.white),
+                                  );
+                                },
+                                loadingBuilder: (BuildContext context,
+                                    Widget child,
+                                    ImageChunkEvent? loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Center(
+                                    child: CircularProgressIndicator(
+                                      value:
+                                          loadingProgress.expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                      .cumulativeBytesLoaded /
+                                                  loadingProgress
+                                                      .expectedTotalBytes!
+                                              : null,
+                                    ),
+                                  );
+                                },
+                              )
+                            else
+                              const Text(
+                                'QR code image not available.',
+                                style: TextStyle(
                                     color: Colors.white,
-                                  ),
-                                )
-                                : const Text(
-                                  'Generate Voucher', // Changed text
-                                  style: TextStyle(fontSize: 16),
-                                ),
+                                    fontStyle: FontStyle.italic),
+                              ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       ),
-                    ],
+                    ),
+                  ] else ...[
+                    // Balance Card
+                    Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(
+                              15), // Added for consistency
+                          gradient: LinearGradient(
+                            colors: [
+                              AppTheme.light.colorScheme.primary,
+                              AppTheme.light.colorScheme.primary
+                                  .withOpacity(0.8),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Current Reward Balance', // Changed text
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${_rewardBalance.toStringAsFixed(0)} EGP', // User balance is int
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Amount Input
+                    TextField(
+                      controller: _amountController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        labelText: 'Enter Amount (EGP)',
+                        hintText: 'Min 10 EGP, Max $_rewardBalance EGP',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        prefixIcon: const Icon(Icons.attach_money),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Generate Button
+                    ElevatedButton(
+                      onPressed: _isRequestInProgress ? null : _generateVoucher,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            AppTheme.light.colorScheme.primary, // Added style
+                        foregroundColor: Colors.white, // Added style
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        disabledBackgroundColor:
+                            AppTheme.light.colorScheme.primary.withOpacity(0.7),
+                      ),
+                      child: _isRequestInProgress
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Generate Voucher', // Changed text
+                              style: TextStyle(fontSize: 16),
+                            ),
+                    ),
                   ],
-                ),
+                ],
               ),
+            ),
     );
   }
 

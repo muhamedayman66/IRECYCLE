@@ -3,128 +3,457 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IRECYCLE - Empowering Sustainable Futures</title>
+  <title>IRECYCLE - Recycle Smart. Live Green.</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
       padding: 0;
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #1a3c34 0%, #2a6b5b 100%);
+      background-color: #f0fdfa; /* A very light, almost white green */
       min-height: 100vh;
-      color: #ffffff;
+      color: #334155; /* Slate 700 for body text */
+      scroll-behavior: smooth; /* Smooth scroll for anchor links */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
     .navbar {
-      background: #F2F2F2;
-      padding: 1rem 2rem;
+      background: rgba(255, 255, 255, 0.85); /* Semi-transparent white */
+      backdrop-filter: blur(12px); /* Frosted glass effect */
+      padding: 0.75rem 2rem; /* Reduced padding for a sleeker look */
       position: fixed;
       width: 100%;
       top: 0;
-      z-index: 10;
+      z-index: 1000;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.06); /* Softer shadow */
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .navbar.scrolled { /* Style for when navbar is scrolled */
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
     }
     .hero {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      padding: 2rem;
+      padding-top: 80px; /* Navbar height + some buffer */
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
       text-align: center;
+      background: linear-gradient(135deg, #10b981 0%, #059669 70%, #047857 100%); /* Emerald to Green gradient */
+      color: #ffffff;
+      overflow: hidden; /* Prevent scrollbars from animations */
     }
     .container {
-      max-width: 700px;
+      max-width: 1100px; /* Wider container */
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: 1rem;
+      padding-right: 1rem;
     }
     .button {
-      transition: all 0.3s ease-in-out;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); /* Smoother transition */
       transform: translateY(0);
+      display: inline-block;
+      font-weight: 600; /* Semibold */
     }
     .button:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 10px 20px -10px rgba(0,0,0,0.25); /* More dynamic shadow */
+    }
+    .nav-link {
+        color: #475569; /* Slate 600 */
+        font-weight: 500; /* Medium */
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem; /* Rounded-md */
+        transition: color 0.2s ease, background-color 0.2s ease;
     }
     .nav-link:hover {
-      color: #34d399;
+      color: #059669 !important; /* Emerald 600 */
+      background-color: #d1fae5; /* Emerald 100 for subtle hover */
+    }
+    .nav-link.active {
+      color: #047857 !important; /* Emerald 700 */
+      font-weight: 600;
+      background-color: #a7f3d0; /* Emerald 200 */
     }
     .section {
-      padding: 6rem 2rem;
-      min-height: 100vh;
+      padding: 80px 1.5rem 50px 1.5rem;
+      min-height: auto;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      text-align: center;
+      overflow: hidden; /* For animations */
     }
-    .hidden {
-      display: none;
+    #about {
+      background-color: #ffffff;
+    }
+    #features {
+        background-color: #f0fdfa; /* Emerald 50 */
+    }
+    #how-it-works {
+        background-color: #ffffff;
+    }
+    #contact {
+      background-color: #ecfdf5; /* Green 50 */
+    }
+    .footer {
+      background-color: #064e3b; /* Emerald 900 - Darker green */
+      color: #a7f3d0; /* Emerald 200 - Lighter text */
+      padding: 3rem 1.5rem;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      color: #4b5563; /* Gray 600 */
+      border-radius: 0.75rem; /* Rounded-xl */
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.04); /* Softer shadow */
+      text-align: left;
+      transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+    }
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -2px rgba(0,0,0,0.05); /* Enhanced hover shadow */
+    }
+    .feature-icon {
+      font-size: 2.25rem; /* text-4xl */
+      color: #10b981; /* Emerald 500 */
+      margin-bottom: 1rem;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy effect */
+    }
+    .card:hover .feature-icon {
+      transform: scale(1.15) rotate(-5deg);
+    }
+    .section-title {
+        font-size: 2.25rem; /* text-4xl */
+        font-weight: 800; /* Extrabold */
+        margin-bottom: 2.5rem; /* mb-10 */
+        color: #065f46; /* Emerald 800 */
+        position: relative;
+        display: inline-block;
+    }
+    .section-title::after {
+        content: '';
+        display: block;
+        width: 50px;
+        height: 3px;
+        background-color: #10b981; /* Emerald 500 */
+        margin: 0.75rem auto 0;
+        border-radius: 2px;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-on-scroll {
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+    .animated {
+      animation: fadeInUp 0.7s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+    }
+    /* Staggered animation for children */
+    .stagger-children > * {
+        opacity: 0;
+        animation: fadeInUp 0.7s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
     }
   </style>
 </head>
-<body>
+<body class="pt-[64px]"> <!-- Adjusted for navbar height -->
   <nav class="navbar">
-    <div class="max-w-7xl mx-auto flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-green-400">IRECYCLE</h1>
-      <div class="space-x-6">
-        <a href="#home" class="nav-link text-gray-800 font-semibold text-lg transition duration-300">Home</a>
-        <a href="#about" class="nav-link text-gray-800 font-semibold text-lg transition duration-300">About</a>
-        <a href="#contact" class="nav-link text-gray-800 font-semibold text-lg transition duration-300">Contact</a>
+    <div class="max-w-6xl mx-auto flex justify-between items-center px-4">
+      <a href="#home" class="text-2xl font-bold text-emerald-600 hover:text-emerald-500 transition duration-300">
+        IRECYCLE
+      </a>
+      <div class="hidden md:flex space-x-2">
+        <a href="#home" class="nav-link active">Home</a>
+        <a href="#about" class="nav-link">About Us</a>
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="#contact" class="nav-link">Contact</a>
       </div>
+      <div class="md:hidden">
+        <button id="mobile-menu-button" class="text-slate-600 hover:text-emerald-600 focus:outline-none">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+        </button>
+      </div>
+    </div>
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden md:hidden absolute top-full left-0 w-full bg-white shadow-lg py-2">
+        <a href="#home" class="block nav-link text-center py-2">Home</a>
+        <a href="#about" class="block nav-link text-center py-2">About Us</a>
+        <a href="#features" class="block nav-link text-center py-2">Features</a>
+        <a href="#how-it-works" class="block nav-link text-center py-2">How It Works</a>
+        <a href="#contact" class="block nav-link text-center py-2">Contact</a>
     </div>
   </nav>
 
   <section id="home" class="hero">
     <div class="container">
-      <h1 class="text-4xl md:text-6xl font-extrabold mb-6 text-green-300 tracking-tight animate-fade-in">
-        Empowering a Sustainable Tomorrow
+      <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 tracking-tighter animate-on-scroll animated" style="animation-delay: 0.1s;">
+        Recycle Smart. <span class="block sm:inline">Live Green.</span>
       </h1>
-      <p class="text-lg md:text-2xl mb-10 leading-relaxed text-gray-200">
-        Transform the way you recycle with IRECYCLE. Join a global movement for a cleaner, greener planet.
+      <p class="text-lg sm:text-xl md:text-2xl mb-10 leading-relaxed text-emerald-50 max-w-3xl mx-auto animate-on-scroll animated" style="animation-delay: 0.3s;">
+        Join IRECYCLE and be part of the solution. Making recycling easy, rewarding, and impactful for a sustainable future.
       </p>
-      <div class="flex flex-col items-center gap-6">
-        <a href="apk/app-release.apk" download class="button bg-transparent border-2 border-green-500 hover:bg-green-500 text-white font-semibold py-4 px-10 rounded-full text-lg">
-          Download the App (APK)
+      <div class="animate-on-scroll animated" style="animation-delay: 0.5s;">
+        <a href="apk/IRECYCLE.apk" download class="button bg-white hover:bg-emerald-50 text-emerald-600 font-semibold py-3 px-8 rounded-full text-md sm:text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
+          Download The App
         </a>
-        <div class="mt-4">
-          <p class="text-white mb-2">Scan to Download:</p>
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://muhamedayman66.netlify.app/apk/app-release.apk" alt="Download QR Code" class="mx-auto">
+      </div>
+    </div>
+  </section>
+
+  <section id="about" class="section">
+    <div class="container animate-on-scroll">
+      <h2 class="section-title animated">About IRECYCLE</h2>
+      <div class="card max-w-3xl mx-auto animated" style="animation-delay: 0.2s;">
+        <p class="text-md md:text-lg mb-5 leading-relaxed text-slate-700">
+          At IRECYCLE, we are driven by a passion for creating a sustainable future through innovative recycling solutions.
+          Our core mission is to empower individuals and communities to significantly reduce waste, actively promote eco-friendly practices,
+          and make a tangible contribution to a healthier planet.
+        </p>
+        <p class="text-md md:text-lg leading-relaxed text-slate-700">
+          By harnessing the power of technology, we strive to make recycling more accessible, highly efficient,
+          and genuinely rewarding for everyone involved. We firmly believe that every small action collectively makes a big difference. Join us on our exciting journey to transform waste into valuable opportunities and collaboratively build a greener tomorrow, one conscious step at a time.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="section">
+    <div class="container animate-on-scroll">
+      <h2 class="section-title animated">Why Choose IRECYCLE?</h2>
+      <div class="grid md:grid-cols-3 gap-6 lg:gap-8 stagger-children">
+        <div class="card text-center p-6" style="animation-delay: 0.1s;">
+          <div class="feature-icon mb-4">♻️</div>
+          <h3 class="text-xl font-semibold mb-2 text-emerald-700">Seamless Recycling</h3>
+          <p class="text-sm text-slate-600">Find centers, schedule pickups, and manage your recycling effortlessly with our intuitive app.</p>
+        </div>
+        <div class="card text-center p-6" style="animation-delay: 0.25s;">
+          <div class="feature-icon mb-4">🏆</div>
+          <h3 class="text-xl font-semibold mb-2 text-emerald-700">Earn Rewards</h3>
+          <p class="text-sm text-slate-600">Get recognized for your green habits. Earn points and redeem them for exciting perks and offers.</p>
+        </div>
+        <div class="card text-center p-6" style="animation-delay: 0.4s;">
+          <div class="feature-icon mb-4">🌍</div>
+          <h3 class="text-xl font-semibold mb-2 text-emerald-700">Measure Your Impact</h3>
+          <p class="text-sm text-slate-600">Track your environmental contribution and see how you're helping build a more sustainable world.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <section id="about" class="section hidden">
-    <div class="container">
-      <h2 class="text-4xl md:text-5xl font-bold mb-6 text-green-300">About IRECYCLE</h2>
-      <p class="text-lg md:text-xl mb-6 leading-relaxed text-gray-200">
-        At IRECYCLE, we are passionate about creating a sustainable future through innovative recycling solutions. 
-        Our mission is to empower individuals and communities to reduce waste, promote eco-friendly practices, 
-        and contribute to a healthier planet. By leveraging technology, we make recycling accessible, efficient, 
-        and rewarding for everyone.
-      </p>
-      <p class="text-lg md:text-xl leading-relaxed text-gray-200">
-        Join us in our journey to transform waste into opportunity and build a greener tomorrow, one step at a time.
-      </p>
+  <section id="how-it-works" class="section">
+    <div class="container animate-on-scroll">
+      <h2 class="section-title animated">How IRECYCLE Works</h2>
+      <div class="grid md:grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch stagger-children">
+        <div class="card text-center p-6 flex flex-col" style="animation-delay: 0.1s;">
+          <div class="text-5xl font-bold text-emerald-500 mb-4">1</div>
+          <h3 class="text-xl font-semibold mb-2 text-emerald-700">Download & Sign Up</h3>
+          <p class="text-sm text-slate-600 flex-grow">Get the IRECYCLE app. Create your account in moments and begin your eco-friendly journey with us.</p>
+        </div>
+        <div class="card text-center p-6 flex flex-col" style="animation-delay: 0.25s;">
+          <div class="text-5xl font-bold text-emerald-500 mb-4">2</div>
+          <h3 class="text-xl font-semibold mb-2 text-emerald-700">Sort & Schedule</h3>
+          <p class="text-sm text-slate-600 flex-grow">Easily sort your recyclables using our clear guidelines. Find collection points or schedule a pickup at your convenience.</p>
+        </div>
+        <div class="card text-center p-6 flex flex-col" style="animation-delay: 0.4s;">
+          <div class="text-5xl font-bold text-emerald-500 mb-4">3</div>
+          <h3 class="text-xl font-semibold mb-2 text-emerald-700">Earn & Redeem</h3>
+          <p class="text-sm text-slate-600 flex-grow">Once processed, earn points for your recyclables. Redeem for rewards, discounts, or support environmental causes.</p>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section id="contact" class="section hidden">
-    <div class="container">
-      <h2 class="text-4xl md:text-5xl font-bold mb-6 text-green-300">Contact Us</h2>
-      <p class="text-lg md:text-xl mb-6 leading-relaxed text-gray-200">
-        Have questions or want to get involved? Reach out to us!
-      </p>
-      <p class="text-lg md:text-xl mb-6 leading-relaxed text-gray-200">
-        Email: <a href="mailto:irecycle.eg@gmail.com" class="underline hover:text-green-400">irecycle.eg@gmail.com</a>
-      </p>
+  <section id="contact" class="section">
+    <div class="container animate-on-scroll">
+      <h2 class="section-title animated">Get In Touch</h2>
+      <div class="card max-w-lg mx-auto p-6 sm:p-8 text-center animated" style="animation-delay: 0.2s;">
+        <p class="text-md md:text-lg mb-5 leading-relaxed text-slate-700">
+          Have questions, suggestions, or interested in partnering with us? We're excited to hear from you!
+        </p>
+        <div class="mt-5">
+            <p class="text-md text-slate-600 mb-2">Connect with us via email:</p>
+            <a href="mailto:irecycle.eg@gmail.com" class="inline-flex items-center justify-center button bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-6 rounded-lg text-md shadow-md hover:shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                </svg>
+                irecycle.eg@gmail.com
+            </a>
+            <p class="mt-5 text-xs text-slate-500">We aim to respond within 1-2 business days.</p>
+        </div>
+      </div>
     </div>
   </section>
+
+  <footer class="footer">
+    <div class="container mx-auto">
+      <p class="text-md font-semibold">&copy; <span id="currentYear"></span> IRECYCLE. All Rights Reserved.</p>
+      <p class="mt-2 text-sm text-emerald-300">Pioneering a Greener Future, Together.</p>
+      <div class="mt-4 space-x-2 sm:space-x-4">
+        <a href="#home" class="text-emerald-300 hover:text-white text-xs sm:text-sm">Home</a>
+        <span class="text-emerald-400">|</span>
+        <a href="#about" class="text-emerald-300 hover:text-white text-xs sm:text-sm">About</a>
+        <span class="text-emerald-400">|</span>
+        <a href="#features" class="text-emerald-300 hover:text-white text-xs sm:text-sm">Features</a>
+        <span class="text-emerald-400">|</span>
+        <a href="#contact" class="text-emerald-300 hover:text-white text-xs sm:text-sm">Contact</a>
+      </div>
+    </div>
+  </footer>
 
   <script>
-    document.querySelectorAll('.nav-link').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetId = link.getAttribute('href').substring(1);
-        document.querySelectorAll('.hero, .section').forEach(section => {
-          section.classList.add('hidden');
+    // Navbar scroll effect
+    const navbar = document.querySelector('.navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 20) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    });
+
+    // Mobile menu toggle
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenuButton && mobileMenu) {
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
         });
-        document.getElementById(targetId).classList.remove('hidden');
+        // Close mobile menu when a link is clicked
+        mobileMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+    }
+
+    // Smooth scrolling for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href');
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+          const navbarHeight = document.querySelector('.navbar').offsetHeight;
+          const elementPosition = targetElement.getBoundingClientRect().top + window.pageYOffset;
+          const offsetPosition = elementPosition - navbarHeight - 10; // Extra offset for better spacing
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      });
+    });
+
+    // Set current year in footer
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+    // Intersection Observer for animations
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px 0px -50px 0px', // Trigger a bit before it's fully in view from bottom
+      threshold: 0.1
+    };
+
+    let animationDelayBase = 0.1; // Initial delay for staggering
+
+    const observerCallback = (entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target;
+          el.classList.add('animated');
+          
+          // Stagger children if the parent has 'stagger-children'
+          if (el.classList.contains('stagger-children')) {
+            let childDelay = 0.1; // Initial delay for children
+            const children = el.querySelectorAll('.card, h1, p, .button'); // Select elements to stagger
+            children.forEach(child => {
+              if (!child.style.animationDelay) { // Apply delay only if not already set
+                child.style.animationDelay = `${childDelay}s`;
+              }
+              child.classList.add('animated'); // Ensure children are also animated
+              childDelay += 0.15; // Increment delay for next child
+            });
+          } else if (el.style.animationDelay) {
+            // If the element itself has a delay, ensure it's applied
+             setTimeout(() => { el.style.opacity = 1;}, parseFloat(el.style.animationDelay) * 1000);
+          } else {
+             el.style.opacity = 1; // Make visible if no specific delay
+          }
+          observer.unobserve(el);
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+    document.querySelectorAll('.animate-on-scroll').forEach(el => {
+      observer.observe(el);
+    });
+     // Apply initial delays for hero elements if they are visible on load
+    document.querySelectorAll('#home .animate-on-scroll').forEach(el => {
+        if(el.getBoundingClientRect().top < window.innerHeight && el.getBoundingClientRect().bottom > 0) {
+            // Manually trigger for elements already in view (like hero)
+            if (el.style.animationDelay) {
+                 setTimeout(() => { el.classList.add('animated'); el.style.opacity = 1;}, parseFloat(el.style.animationDelay) * 1000);
+            } else {
+                 el.classList.add('animated');
+                 el.style.opacity = 1;
+            }
+            observer.unobserve(el); // Unobserve if animated on load
+        } else {
+            observer.observe(el);
+        }
+    });
+
+
+    // Active Nav Link Highlighting on Scroll
+    const sections = document.querySelectorAll("section[id]");
+    const navLinks = document.querySelectorAll("nav a.nav-link"); // Target all nav links
+
+    window.addEventListener("scroll", () => {
+      let currentSectionId = "";
+      const navbarHeight = navbar.offsetHeight;
+
+      sections.forEach((section) => {
+        const sectionTop = section.offsetTop - navbarHeight - 50; // Adjusted offset
+        if (window.pageYOffset >= sectionTop) {
+          currentSectionId = section.getAttribute("id");
+        }
+      });
+      
+      // Fallback to home if no section is active (e.g., at the very top or bottom beyond last section)
+      if (!currentSectionId && window.pageYOffset < sections[0].offsetTop - navbarHeight - 50) {
+          currentSectionId = "home";
+      }
+
+
+      navLinks.forEach((link) => {
+        link.classList.remove("active");
+        // Handle both main nav and mobile nav links
+        const linkHref = link.getAttribute("href");
+        if (linkHref === `#${currentSectionId}`) {
+          link.classList.add("active");
+        }
       });
     });
   </script>

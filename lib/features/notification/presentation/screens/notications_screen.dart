@@ -41,12 +41,10 @@ class NotificationRepository {
     );
 
     if (response.statusCode == 200) {
-      List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+      List<dynamic> data = jsonDecode(response.body);
       return data.map((json) => NotificationModel.fromJson(json)).toList();
     } else {
-      throw Exception(
-        'Failed to load notifications: ${utf8.decode(response.bodyBytes)}',
-      );
+      throw Exception('Failed to load notifications: ${response.body}');
     }
   }
 
@@ -200,7 +198,6 @@ class _NotificationTileState extends State<NotificationTile> {
         ),
         title: Text(
           widget.notification.message,
-          softWrap: true, // Ensure text wraps
           style: TextStyle(
             fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
           ),

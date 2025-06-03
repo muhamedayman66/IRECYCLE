@@ -9,11 +9,12 @@ import 'package:graduation_project11/core/themes/app__theme.dart';
 import 'package:graduation_project11/core/widgets/custom_appbar.dart';
 import 'package:graduation_project11/features/recycling/presentation/screens/rewarding_screen.dart';
 import 'package:graduation_project11/core/utils/shared_keys.dart';
-import 'package:graduation_project11/features/home/presentation/screen/home_screen.dart';
+import 'package:graduation_project11/features/home/presentation/screen/home_screen.dart'; // Added for navigation
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart'; // Required for SystemNavigator
 
+// إضافة Notification لتحديث الإحصائيات
 class UpdateStatsNotification extends Notification {
   final String email;
   UpdateStatsNotification(this.email);
@@ -23,7 +24,7 @@ class OrderStatusScreen extends StatefulWidget {
   final String userEmail;
 
   const OrderStatusScreen({Key? key, required this.userEmail})
-    : super(key: key);
+      : super(key: key);
 
   @override
   _OrderStatusScreenState createState() => _OrderStatusScreenState();
@@ -34,14 +35,13 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
   String? error;
   Map<String, dynamic>? orderData;
   String? _lastStatus;
-  // DateTime? _lastUpdateTime; // Not currently used, can be removed if not needed
+  DateTime? _lastUpdateTime;
   Timer? _refreshTimer;
   bool _isChatOpen = false;
   String? _assignmentId;
-  int? _numericAssignmentId;
-  Set<int> _unreadAssignments = {};
-  String? _fetchedUserGovernorate;
-  String? _profileUserGovernorate;
+  String?
+      _fetchedUserGovernorate; // To store governorate from SharedPreferences
+  String? _profileUserGovernorate; // To store governorate from User Profile API
   bool _showRejectedFullScreenMessage = false;
   String? _rejectedReasonForFullScreenMessage;
 
@@ -49,8 +49,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(SharedKeys.orderStatusResumeEmail, widget.userEmail);
     print(
-      "OrderStatusScreen: orderStatusResumeEmail set to ${widget.userEmail}",
-    );
+        "OrderStatusScreen: orderStatusResumeEmail set to ${widget.userEmail}");
   }
 
   Future<void> _clearResumeState() async {
@@ -61,9 +60,14 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
 
   static Color getStatusColor(String? status) {
     if (status == null) return Colors.grey;
+
     switch (status.toLowerCase()) {
       case 'pending':
         return Colors.orange;
+      case 'accepted':
+        return Colors.blue;
+      case 'in_transit':
+        return Colors.indigo;
       case 'delivered':
         return Colors.green;
       case 'rejected':
@@ -99,41 +103,16 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
   @override
   void initState() {
     super.initState();
-    _persistResumeState();
-    _loadInitialData();
-    _refreshTimer = Timer.periodic(Duration(seconds: 15), (timer) {
-      // Reduced refresh interval
-      if (mounted && !_isChatOpen) {
-        // Don't refresh if chat is open
-        _fetchOrderStatus(showLoadingIndicator: false);
-        // _loadUnreadAssignments will be called within _fetchOrderStatus
+    _persistResumeState(); // Save email on init
+    _fetchOrderStatus(
+        showLoadingIndicator: true); // Initial load shows indicator
+    // تحديث كل 30 ثانية
+    _refreshTimer = Timer.periodic(Duration(seconds: 30), (timer) {
+      if (mounted) {
+        _fetchOrderStatus(
+            showLoadingIndicator: false); // Background refresh hides indicator
       }
     });
-  }
-
-  Future<void> _loadInitialData() async {
-    await _fetchOrderStatus(showLoadingIndicator: true);
-    await _loadUnreadAssignments();
-  }
-
-  Future<void> _loadUnreadAssignments() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> unreadIdsAsString =
-        prefs.getStringList(SharedKeys.unreadChatAssignments) ?? [];
-    if (mounted) {
-      final newUnreadSet =
-          unreadIdsAsString
-              .map((id) => int.tryParse(id) ?? -1)
-              .where((id) => id != -1)
-              .toSet();
-      if (_unreadAssignments.length != newUnreadSet.length ||
-          !_unreadAssignments.containsAll(newUnreadSet)) {
-        setState(() {
-          _unreadAssignments = newUnreadSet;
-        });
-      }
-    }
-    print("OrderStatusScreen: Loaded unread assignments: $_unreadAssignments");
   }
 
   // _setOrderStatusFlag is removed as its functionality is replaced by _persistResumeState and _clearResumeState
@@ -149,8 +128,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
     final prefs = await SharedPreferences.getInstance();
     final storedGovernorate = prefs.getString(SharedKeys.userGovernorate);
     print(
-      'Attempting to load governorate from SharedPreferences with key "${SharedKeys.userGovernorate}": "$storedGovernorate"',
-    );
+        'Attempting to load governorate from SharedPreferences with key "${SharedKeys.userGovernorate}": "$storedGovernorate"');
     if (storedGovernorate != null &&
         storedGovernorate.isNotEmpty &&
         storedGovernorate.toLowerCase() != 'null') {
@@ -163,8 +141,6 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
 
   Future<void> _fetchOrderStatus({bool showLoadingIndicator = true}) async {
     if (!mounted) return;
-
-    await _loadUnreadAssignments(); // Load unread status before fetching order status
 
     if (showLoadingIndicator) {
       setState(() {
@@ -222,33 +198,27 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
         // Fetch user profile to get governorate from backend
         String? profileGovernorateValue;
         try {
-          final profileUri = Uri.parse(ApiConstants.getUserProfile).replace(
-            queryParameters: {
-              'email': userEmail,
-              'user_type': 'regular_user', // Corrected user_type
-            },
-          );
+          final profileUri =
+              Uri.parse(ApiConstants.getUserProfile).replace(queryParameters: {
+            'email': userEmail,
+            'user_type': 'regular_user', // Corrected user_type
+          });
           print('Fetching user profile from: $profileUri');
-          final profileResponse = await http.get(
-            profileUri,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          );
+          final profileResponse = await http.get(profileUri, headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          });
 
           if (profileResponse.statusCode == 200) {
-            final profileData = json.decode(
-              utf8.decode(profileResponse.bodyBytes),
-            );
+            final profileData =
+                json.decode(utf8.decode(profileResponse.bodyBytes));
             print('User profile data: $profileData');
             if (profileData != null && profileData['governorate'] != null) {
               profileGovernorateValue = profileData['governorate'].toString();
               if (profileGovernorateValue!.isNotEmpty &&
                   profileGovernorateValue.toLowerCase() != 'null') {
                 print(
-                  'Fetched governorate from profile: $profileGovernorateValue',
-                );
+                    'Fetched governorate from profile: $profileGovernorateValue');
                 // Store it in the state variable to be used by _buildOrderDetails
                 _profileUserGovernorate = profileGovernorateValue;
               } else {
@@ -258,8 +228,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
             }
           } else {
             print(
-              'Failed to fetch user profile: ${profileResponse.statusCode} - ${profileResponse.body}',
-            );
+                'Failed to fetch user profile: ${profileResponse.statusCode} - ${profileResponse.body}');
           }
         } catch (e) {
           print('Error fetching user profile: $e');
@@ -276,74 +245,57 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
             if (assignmentResponse.statusCode == 200) {
               final assignmentData = json.decode(assignmentResponse.body);
               _assignmentId = assignmentData['id']?.toString();
-              _numericAssignmentId = assignmentData['id']; // Store numeric ID
-              data['assignment_id'] =
-                  _assignmentId; // Keep string for existing logic if any
-              print(
-                'Found assignment ID: $_assignmentId (Numeric: $_numericAssignmentId)',
-              );
-              if (_numericAssignmentId != null) {
+              data['assignment_id'] = _assignmentId;
+              print('Found assignment ID: ${_assignmentId}');
+              if (_assignmentId != null) {
                 final prefs = await SharedPreferences.getInstance();
-                await prefs.setInt(
-                  SharedKeys.lastAssignmentId,
-                  _numericAssignmentId!,
-                );
-                print(
-                  'Stored assignment ID in SharedPreferences: $_numericAssignmentId',
-                );
+                final assignmentIdInt = int.tryParse(_assignmentId!);
+                if (assignmentIdInt != null) {
+                  await prefs.setInt(
+                      SharedKeys.lastAssignmentId, assignmentIdInt);
+                  print(
+                      'Stored assignment ID in SharedPreferences: $assignmentIdInt');
+                }
               }
             } else {
               print(
-                'Failed to get assignment ID: ${assignmentResponse.statusCode}',
-              );
+                  'Failed to get assignment ID: ${assignmentResponse.statusCode}');
               print('Response: ${assignmentResponse.body}');
-              if (data['id'] != null && data['id'] is int) {
-                _numericAssignmentId = data['id'];
-                _assignmentId = _numericAssignmentId.toString();
+              if (data['id'] != null) {
+                _assignmentId = data['id'].toString();
                 data['assignment_id'] = _assignmentId;
                 print(
-                  'Using order ID as fallback assignment ID: $_assignmentId (Numeric: $_numericAssignmentId)',
-                );
+                    'Using order ID as fallback assignment ID: ${_assignmentId}');
                 final prefs = await SharedPreferences.getInstance();
-                await prefs.setInt(
-                  SharedKeys.lastAssignmentId,
-                  _numericAssignmentId!,
-                );
-                print(
-                  'Stored order ID as assignment ID in SharedPreferences: $_numericAssignmentId',
-                );
+                final orderIdInt = int.tryParse(_assignmentId!);
+                if (orderIdInt != null) {
+                  await prefs.setInt(SharedKeys.lastAssignmentId, orderIdInt);
+                  print(
+                      'Stored order ID as assignment ID in SharedPreferences: $orderIdInt');
+                }
               }
             }
           } catch (e) {
             print('Error fetching assignment ID: $e');
-            if (data['id'] != null && data['id'] is int) {
-              _numericAssignmentId = data['id'];
-              _assignmentId = _numericAssignmentId.toString();
+            if (data['id'] != null) {
+              _assignmentId = data['id'].toString();
               data['assignment_id'] = _assignmentId;
               print(
-                'Using order ID as fallback assignment ID after error: $_assignmentId (Numeric: $_numericAssignmentId)',
-              );
+                  'Using order ID as fallback assignment ID after error: ${_assignmentId}');
               try {
                 final prefs = await SharedPreferences.getInstance();
-                await prefs.setInt(
-                  SharedKeys.lastAssignmentId,
-                  _numericAssignmentId!,
-                );
-                print(
-                  'Stored order ID as assignment ID in SharedPreferences after error: $_numericAssignmentId',
-                );
-              } catch (prefsError) {
-                print(
-                  'Error storing assignment ID in SharedPreferences: $prefsError',
-                );
+                final orderIdInt = int.tryParse(_assignmentId!);
+                if (orderIdInt != null) {
+                  await prefs.setInt(SharedKeys.lastAssignmentId, orderIdInt);
+                  print(
+                      'Stored order ID as assignment ID in SharedPreferences after error: $orderIdInt');
+                }
+              } catch (e) {
+                print('Error storing assignment ID in SharedPreferences: $e');
               }
             }
           }
         } else {
-          // Ensure _numericAssignmentId is also set if _assignmentId exists from previous fetch
-          if (_assignmentId != null && _numericAssignmentId == null) {
-            _numericAssignmentId = int.tryParse(_assignmentId!);
-          }
           data['assignment_id'] = _assignmentId;
         }
 
@@ -533,14 +485,12 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundImage:
-                      deliveryBoy['image'] != null
-                          ? NetworkImage(deliveryBoy['image'])
-                          : null,
-                  child:
-                      deliveryBoy['image'] == null
-                          ? const Icon(Icons.person, size: 30)
-                          : null,
+                  backgroundImage: deliveryBoy['image'] != null
+                      ? NetworkImage(deliveryBoy['image'])
+                      : null,
+                  child: deliveryBoy['image'] == null
+                      ? const Icon(Icons.person, size: 30)
+                      : null,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -601,8 +551,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
               // معالجة خطأ "not found" عن طريق طباعة معرف الطلب وتأكيد القيمة
               Builder(
                 builder: (context) {
-                  final assignmentId =
-                      int.tryParse(
+                  final assignmentId = int.tryParse(
                         orderData!['assignment_id']?.toString() ??
                             orderData!['id']?.toString() ??
                             '0',
@@ -668,19 +617,16 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
     final String apiOrderGov = orderData!['governorate']?.toString() ?? '';
     final String? spGov = _fetchedUserGovernorate;
 
-    bool isProfileGovValid =
-        profileGov != null &&
+    bool isProfileGovValid = profileGov != null &&
         profileGov.isNotEmpty &&
         profileGov.toLowerCase() != 'null' &&
         profileGov.toLowerCase() != 'no governorate provided';
 
-    bool isApiOrderGovValid =
-        apiOrderGov.isNotEmpty &&
+    bool isApiOrderGovValid = apiOrderGov.isNotEmpty &&
         apiOrderGov.toLowerCase() != 'null' &&
         apiOrderGov.toLowerCase() != 'no governorate provided';
 
-    bool isSpGovValid =
-        spGov != null &&
+    bool isSpGovValid = spGov != null &&
         spGov.isNotEmpty &&
         spGov.toLowerCase() != 'null' &&
         spGov.toLowerCase() != 'no governorate provided';
@@ -695,10 +641,10 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
       governorateToDisplay = 'No governorate provided';
     }
 
-    final String formattedGovernorate =
-        governorateToDisplay.toLowerCase() == 'no governorate provided'
-            ? 'No governorate provided'
-            : '${governorateToDisplay[0].toUpperCase()}${governorateToDisplay.substring(1).toLowerCase()}';
+    final String formattedGovernorate = governorateToDisplay.toLowerCase() ==
+            'no governorate provided'
+        ? 'No governorate provided'
+        : '${governorateToDisplay[0].toUpperCase()}${governorateToDisplay.substring(1).toLowerCase()}';
     final latitude = orderData!['latitude']?.toString();
     final longitude = orderData!['longitude']?.toString();
 
@@ -850,7 +796,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
                           item['type']?.toString() ?? 'Unknown Item';
                       final int quantity =
                           int.tryParse(item['quantity']?.toString() ?? '0') ??
-                          0;
+                              0;
                       final int points =
                           int.tryParse(item['points']?.toString() ?? '0') ?? 0;
 
@@ -986,11 +932,10 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
                 // Navigate to the rewarding screen
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
-                    builder:
-                        (context) => RewardingScreen(
-                          totalPoints: totalPoints,
-                          assignmentId: assignmentId,
-                        ),
+                    builder: (context) => RewardingScreen(
+                      totalPoints: totalPoints,
+                      assignmentId: assignmentId,
+                    ),
                   ),
                 );
               },
@@ -1202,11 +1147,13 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
                   _rejectedReasonForFullScreenMessage!.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                  ), // Added padding for longer reasons
+                      horizontal: 16.0), // Added padding for longer reasons
                   child: Text(
                     'Rejection Reason: $_rejectedReasonForFullScreenMessage',
-                    style: TextStyle(fontSize: 16, color: Colors.red[600]),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.red[600],
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -1214,14 +1161,11 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.light.colorScheme.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 15,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                   textStyle: const TextStyle(
-                    fontSize: 18,
-                    fontFamily: 'Roboto',
-                  ), // Ensuring consistent font
+                      fontSize: 18,
+                      fontFamily: 'Roboto'), // Ensuring consistent font
                 ),
                 onPressed: () async {
                   await _clearResumeState(); // Clear resume state before going home
@@ -1269,55 +1213,30 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
           actions: [],
           // onBackButtonPressed is removed as WillPopScope handles it
         ),
-        body:
-            isLoading
-                ? Center(child: CircularProgressIndicator())
-                : error != null
-                ? RefreshIndicator(
-                  onRefresh:
-                      () => _fetchOrderStatus(showLoadingIndicator: false),
-                  child: SingleChildScrollView(
-                    // Ensure content is scrollable for RefreshIndicator
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Container(
-                      height:
-                          MediaQuery.of(context).size.height -
-                          (Scaffold.of(context).appBarMaxHeight ??
-                              0), // Take full available height
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 48,
-                              color: Colors.red,
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              error!,
-                              style: TextStyle(color: Colors.red),
-                              textAlign: TextAlign.center,
-                            ),
-                            SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed:
-                                  () => _fetchOrderStatus(
-                                    showLoadingIndicator: true,
-                                  ),
-                              child: Text('Retry'),
-                            ),
-                          ],
+        body: isLoading
+            ? Center(child: CircularProgressIndicator())
+            : error != null
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        SizedBox(height: 16),
+                        Text(
+                          error!,
+                          style: TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
+                        SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () =>
+                              _fetchOrderStatus(showLoadingIndicator: true),
+                          child: Text('Retry'),
+                        ),
+                      ],
                     ),
-                  ),
-                )
-                : RefreshIndicator(
-                  onRefresh:
-                      () => _fetchOrderStatus(showLoadingIndicator: false),
-                  child: _buildOrderDetails(),
-                ),
+                  )
+                : _buildOrderDetails(),
       ),
     );
   }

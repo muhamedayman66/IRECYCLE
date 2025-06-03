@@ -8,11 +8,9 @@ import 'package:graduation_project11/features/delivery%20boy/home/presentation/s
 import 'package:graduation_project11/features/delivery%20boy/orders/data/models/delivery_order.dart';
 import 'package:graduation_project11/features/delivery%20boy/orders/data/services/delivery_orders_service.dart';
 import 'package:graduation_project11/features/recycling/presentation/widgets/chat_widget.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart'; // Added for date formatting
 import 'package:url_launcher/url_launcher.dart';
 import 'package:logger/logger.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Added for SharedPreferences
-import 'package:graduation_project11/core/utils/shared_keys.dart'; // Added for SharedKeys
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -94,46 +92,16 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
   Timer? _refreshTimer;
   int? _selectedOrderId;
   bool _isChatOpen = false;
-  Set<int> _unreadAssignments = {}; // To store IDs of unread chats
 
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) async {
-      // Reduced refresh for faster UI update
-      if (mounted && !_isChatOpen) {
-        // Don't refresh if chat is open to avoid conflicts
+    _loadOrders(showLoadingIndicator: true);
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+      if (mounted) {
         await _loadOrders(showLoadingIndicator: false);
-        // await _loadUnreadAssignments(); // Periodically check for unread messages - Handled in _loadOrders now
       }
     });
-  }
-
-  Future<void> _loadInitialData() async {
-    await _loadOrders(showLoadingIndicator: true);
-    // _loadUnreadAssignments is called within _loadOrders
-  }
-
-  Future<void> _loadUnreadAssignments() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> unreadIdsAsString =
-        prefs.getStringList(SharedKeys.unreadChatAssignments) ?? [];
-    if (mounted) {
-      // Check if the set of unread assignments has actually changed
-      final newUnreadSet =
-          unreadIdsAsString
-              .map((id) => int.tryParse(id) ?? -1)
-              .where((id) => id != -1)
-              .toSet();
-      if (_unreadAssignments.length != newUnreadSet.length ||
-          !_unreadAssignments.containsAll(newUnreadSet)) {
-        setState(() {
-          _unreadAssignments = newUnreadSet;
-        });
-      }
-    }
-    print("Loaded unread assignments: $_unreadAssignments");
   }
 
   @override
@@ -146,90 +114,88 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.light.colorScheme.surface,
-      appBar: CustomAppBar(title: 'Delivery Orders'),
+      appBar: CustomAppBar(title: 'Delivery Orders'), // Updated AppBar title
       body: SafeArea(
-        bottom: true,
-        child:
-            isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : errorMessage != null
+        bottom: true, // Ensure bottom padding
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : errorMessage != null
                 ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, color: Colors.red, size: 48),
-                      const SizedBox(height: 16),
-                      Text(
-                        errorMessage!,
-                        style: TextStyle(fontSize: 16, color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () {
-                          logger.i('🔄 Retry button pressed');
-                          _loadOrders(showLoadingIndicator: true);
-                        },
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red, size: 48),
+                        const SizedBox(height: 16),
+                        Text(
+                          errorMessage!,
+                          style: TextStyle(fontSize: 16, color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            logger.i('🔄 Retry button pressed');
+                            _loadOrders(showLoadingIndicator: true);
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
                 : orders.isEmpty
-                ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: AppTheme.light.colorScheme.primary,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No orders available.',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontFamily: 'Roboto',
-                          color: AppTheme.light.colorScheme.onSurface,
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: AppTheme.light.colorScheme.primary,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No orders available',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontFamily: 'Roboto',
+                                color: AppTheme.light.colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
                         ),
+                      )
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.only(
+                                bottom:
+                                    80), // Increased bottom padding for better scrolling
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: orders.length,
+                                itemBuilder: (context, index) {
+                                  final order = orders[index];
+                                  logger.i(
+                                    '📱 Building order card for order ${order.id}',
+                                  );
+                                  return AnimatedOpacity(
+                                    // Added AnimatedOpacity for smoother appearance
+                                    opacity: 1.0,
+                                    duration: const Duration(milliseconds: 300),
+                                    child: _buildOrderCard(order),
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    ],
-                  ),
-                )
-                : LayoutBuilder(
-                  builder: (context, constraints) {
-                    return RefreshIndicator(
-                      // Added RefreshIndicator
-                      onRefresh: () => _loadOrders(showLoadingIndicator: true),
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.only(bottom: 80),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: constraints.maxHeight,
-                          ),
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: orders.length,
-                            itemBuilder: (context, index) {
-                              final order = orders[index];
-                              logger.i(
-                                '📱 Building order card for order ${order.id}',
-                              );
-                              return AnimatedOpacity(
-                                opacity: 1.0,
-                                duration: const Duration(milliseconds: 300),
-                                child: _buildOrderCard(order),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
       ),
     );
   }
@@ -237,18 +203,13 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
   Future<void> _loadOrders({bool showLoadingIndicator = true}) async {
     if (!mounted) return;
 
-    await _loadUnreadAssignments(); // Load unread status before processing orders
-
     if (showLoadingIndicator) {
       setState(() {
         isLoading = true;
         errorMessage = null;
       });
     } else {
-      // For background refresh, don't set isLoading to true to avoid full screen loader
-      // but you might want a subtle indicator if isBackgroundLoading was used for that.
-      // For now, we rely on the RefreshIndicator for user-initiated pull-to-refresh.
-      // isBackgroundLoading = true; // This was here, but might not be needed if not showing a specific UI for it.
+      isBackgroundLoading = true;
     }
 
     try {
@@ -277,10 +238,10 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
       );
 
       logger.i('📥 Available orders response status: ${response.statusCode}');
-      // logger.i('📦 Available orders response body: ${response.body}'); // Potentially very long
+      logger.i('📦 Available orders response body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+        final List<dynamic> data = json.decode(response.body);
         logger.i('📦 Parsed available orders data length: ${data.length}');
         for (var orderData in data) {
           try {
@@ -292,14 +253,10 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
         }
       } else {
         if (activeOrders.isEmpty) {
-          // Only throw if no active orders could be loaded either
           throw Exception(
             'Failed to load available orders: ${response.statusCode}',
           );
         }
-        logger.w(
-          '⚠️ Failed to load available orders: ${response.statusCode}. Displaying active orders if any.',
-        );
       }
 
       if (mounted) {
@@ -328,36 +285,56 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
             }
           }
 
-          orders =
-              mergedOrdersMap.values.toList()..sort((a, b) {
-                int rankA =
-                    _statusRank[a.status?.toLowerCase() ?? 'unknown'] ??
-                    _statusRank['unknown']!;
-                int rankB =
-                    _statusRank[b.status?.toLowerCase() ?? 'unknown'] ??
-                    _statusRank['unknown']!;
-                if (rankA != rankB) {
-                  return rankA.compareTo(rankB);
-                }
-                return b.createdAt.compareTo(a.createdAt);
-              });
+          orders = mergedOrdersMap.values.toList()
+            ..sort((a, b) {
+              int rankA = _statusRank[a.status?.toLowerCase() ?? 'unknown'] ??
+                  _statusRank['unknown']!;
+              int rankB = _statusRank[b.status?.toLowerCase() ?? 'unknown'] ??
+                  _statusRank['unknown']!;
+              if (rankA != rankB) {
+                return rankA.compareTo(rankB);
+              }
+              return b.createdAt.compareTo(a.createdAt);
+            });
 
           isLoading = false;
-          // isBackgroundLoading = false; // Reset if used
+          isBackgroundLoading = false;
           errorMessage = null;
         });
       }
       logger.i(
         '✅ Successfully merged and loaded ${orders.length} total orders',
       );
+      for (var order in orders) {
+        logger.i('''
+📦 Order ${order.id}:
+   Status: ${order.status}
+   Customer: ${order.customerName}
+   Location: ${order.location}
+   Created: ${order.createdAt}
+   Items: ${order.items.length}
+''');
+      }
     } catch (e) {
       logger.e('❌ Error loading orders: $e');
       if (mounted) {
         setState(() {
           isLoading = false;
-          // isBackgroundLoading = false; // Reset if used
-          errorMessage = 'Failed to load orders. Please try again.';
+          isBackgroundLoading = false;
+          errorMessage = 'Failed to load orders: $e';
         });
+      }
+      if (showLoadingIndicator) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage!),
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => _loadOrders(showLoadingIndicator: true),
+            ),
+          ),
+        );
       }
     }
   }
@@ -421,24 +398,21 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
 
     final String currentOrderStatus = order.status ?? 'Unknown';
     final String statusLabelText = _getStatusLabel(currentOrderStatus);
-    final Color statusColorValue = DeliveryOrdersScreen.getStatusColor(
-      currentOrderStatus,
-    );
-    final IconData statusIconData = DeliveryOrdersScreen.getStatusIcon(
-      currentOrderStatus,
-    );
+    final Color statusColorValue =
+        DeliveryOrdersScreen.getStatusColor(currentOrderStatus);
+    final IconData statusIconData =
+        DeliveryOrdersScreen.getStatusIcon(currentOrderStatus);
 
     final DateFormat dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-    final String createdAtFormatted =
-        order.createdAt != null
-            ? dateFormat.format(order.createdAt.toLocal())
-            : 'N/A';
-    final String assignedAtFormatted =
-        order.assignedTime != null
-            ? dateFormat.format(order.assignedTime!.toLocal())
-            : 'N/A';
+    final String createdAtFormatted = order.createdAt != null
+        ? dateFormat.format(order.createdAt.toLocal())
+        : 'N/A';
+    final String assignedAtFormatted = order.assignedTime != null
+        ? dateFormat.format(order.assignedTime!.toLocal())
+        : 'N/A';
 
     return Column(
+      // Wrap cards in a Column
       children: [
         Card(
           elevation: 2,
@@ -455,12 +429,17 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Card Header
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        Icon(statusIconData, color: statusColorValue, size: 24),
+                        Icon(
+                          statusIconData,
+                          color: statusColorValue,
+                          size: 24,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Order #${order.id}',
@@ -486,6 +465,8 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                   ],
                 ),
                 const Divider(height: 24),
+
+                // Order Information
                 Text(
                   'Order Information',
                   style: TextStyle(
@@ -500,12 +481,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                   'Created At',
                   createdAtFormatted,
                 ),
-                if (order.assignedTime != null)
-                  _buildInfoRow(
-                    Icons.assignment_ind,
-                    'Assigned At',
-                    assignedAtFormatted,
-                  ),
+                // Location Information
                 const Divider(height: 24),
                 Text(
                   'Location Information',
@@ -524,8 +500,15 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                       : 'No governorate provided',
                 ),
                 if (order.location.isNotEmpty)
-                  _buildInfoRow(Icons.location_on, 'Address', order.location),
+                  _buildInfoRow(
+                    Icons.location_on,
+                    'Address',
+                    order.location,
+                  ),
 
+                // Recycle Bag Contents
+
+                // Recycle Bag Contents
                 if (order.items.isNotEmpty) ...[
                   const Divider(height: 24),
                   Text(
@@ -547,14 +530,10 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                         elevation: 1,
                         margin: const EdgeInsets.symmetric(vertical: 4),
                         child: ListTile(
-                          leading: Icon(
-                            Icons.recycling,
-                            color: AppTheme.light.colorScheme.secondary,
-                          ),
-                          title: Text(
-                            item.itemType,
-                            style: TextStyle(fontWeight: FontWeight.w500),
-                          ),
+                          leading: Icon(Icons.recycling,
+                              color: AppTheme.light.colorScheme.secondary),
+                          title: Text(item.itemType,
+                              style: TextStyle(fontWeight: FontWeight.w500)),
                           subtitle: Text('Points: ${item.points}'),
                           trailing: Text(
                             '${item.quantity} items',
@@ -568,19 +547,19 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                     },
                   ),
                 ],
+                // Action Buttons are now part of this card
                 const Divider(height: 24),
                 _buildActionButtons(order),
               ],
             ),
           ),
         ),
-        if ([
-          'pending',
-          'accepted',
-          'in_transit',
-        ].contains(currentOrderStatus.toLowerCase()))
+        // Customer Information Card (conditionally displayed below the main card)
+        if (['pending', 'accepted', 'in_transit']
+            .contains(currentOrderStatus.toLowerCase()))
           Padding(
-            padding: const EdgeInsets.fromLTRB(12.0, 0, 12.0, 16.0),
+            padding: const EdgeInsets.fromLTRB(
+                12.0, 0, 12.0, 16.0), // Increased bottom padding
             child: _buildCustomerInfo(order),
           ),
       ],
@@ -649,7 +628,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
 
     List<Widget> secondaryActionButtons = [];
     if (orderStatus == 'accepted' || orderStatus == 'in_transit') {
-      secondaryActionButtons.add(
+      secondaryActionButtons.addAll([
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () => _showCancelConfirmation(order),
@@ -661,14 +640,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
             ),
           ),
         ),
-      );
-    }
-
-    if (orderStatus == 'in_transit') {
-      if (secondaryActionButtons.isNotEmpty) {
-        secondaryActionButtons.add(const SizedBox(width: 8));
-      }
-      secondaryActionButtons.add(
+        const SizedBox(width: 8),
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () => _showRejectConfirmation(order),
@@ -680,7 +652,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
             ),
           ),
         ),
-      );
+      ]);
     }
 
     return Column(
@@ -689,7 +661,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
         if (secondaryActionButtons.isNotEmpty) ...[
           const SizedBox(height: 8),
           Row(children: secondaryActionButtons),
-        ],
+        ]
       ],
     );
   }
@@ -699,15 +671,27 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
       if (widget.email.isEmpty) {
         throw Exception('Delivery boy email is required');
       }
+
       setState(() => isLoading = true);
       logger.i(
         'Starting to accept order ${order.id} with email ${widget.email}',
       );
+
       await _ordersService.acceptOrder(order.id, widget.email);
       await _loadOrders(showLoadingIndicator: false);
-      logger.i('Order ${order.id} accepted successfully.');
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Order accepted successfully')));
+      }
     } catch (e) {
       logger.e('Error accepting order: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => isLoading = false);
@@ -718,15 +702,27 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
   Future<void> _handleRejectOrder(DeliveryOrder order) async {
     try {
       setState(() => isLoading = true);
+
       if (mounted) {
         setState(() {
           orders.removeWhere((o) => o.id == order.id);
           isLoading = false;
         });
-        logger.i('Order ${order.id} declined locally.');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order declined successfully'),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
     } catch (e) {
       logger.e('Error declining order: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => isLoading = false);
@@ -747,6 +743,14 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
         await _loadOrders(showLoadingIndicator: false);
       } catch (e) {
         logger.e('Error updating to in_transit: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('فشل في تحديث حالة الطلب: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
       } finally {
         if (mounted) {
@@ -800,9 +804,22 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
             isLoading = false;
           });
         }
-        logger.i('Order ${order.id} marked as delivered.');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إكمال التوصيل بنجاح'),
+            backgroundColor: Colors.green,
+          ),
+        );
       } catch (e) {
         logger.e('Error completing delivery: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('فشل في إكمال التوصيل: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       } finally {
         if (mounted) {
           setState(() => isLoading = false);
@@ -835,7 +852,12 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
             }
             isLoading = false;
           });
-          logger.i('Order ${order.id} delivery started.');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تم بدء التوصيل بنجاح'),
+              backgroundColor: Colors.blue,
+            ),
+          );
         }
       } else {
         if (mounted) {
@@ -845,6 +867,14 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
       }
     } catch (e) {
       logger.e('Error starting delivery: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشل في بدء التوصيل: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => isLoading = false);
@@ -853,8 +883,16 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
   }
 
   Future<void> _showCancelConfirmation(DeliveryOrder order) async {
+    // Check if order is in transit first
     if (order.status?.toLowerCase() == 'in_transit') {
-      logger.w('Attempted to cancel an order already in transit: ${order.id}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'لا يمكن إلغاء الطلب أثناء التوصيل. يرجى إكمال التوصيل أو رفض الطلب.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
+      );
       return;
     }
 
@@ -892,7 +930,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
         setState(() => isLoading = true);
         final int assignmentIdToCancel = order.id;
         logger.i(
-          'Attempting to cancel assignment ID: $assignmentIdToCancel for order',
+          'Attempting to cancel assignment ID: $assignmentIdToCancel for order (bag ID not directly used here, but is order.recycleBagId if needed)',
         );
         await _ordersService.cancelOrder(
           assignmentIdToCancel,
@@ -900,9 +938,33 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
         );
         if (!mounted) return;
         await _loadOrders(showLoadingIndicator: false);
-        logger.i('Order ${order.id} cancelled and returned to pending.');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إلغاء الطلب وإعادته إلى قائمة الطلبات المعلقة'),
+            backgroundColor: Colors.orange,
+          ),
+        );
       } catch (e) {
         logger.e('Error canceling order: $e');
+        if (mounted) {
+          String errorMessage = 'فشل في إلغاء الطلب';
+
+          // Check for specific error messages
+          if (e.toString().contains('in transit')) {
+            errorMessage =
+                'لا يمكن إلغاء الطلب أثناء التوصيل. يرجى إكمال التوصيل أو رفض الطلب.';
+          } else {
+            errorMessage = 'فشل في إلغاء الطلب: ${e.toString()}';
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       } finally {
         if (mounted) {
           setState(() => isLoading = false);
@@ -944,7 +1006,11 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
             ElevatedButton(
               onPressed: () {
                 if (reason.trim().isEmpty) {
-                  logger.w('Attempted to reject order without a reason.');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please provide a reason for rejection'),
+                    ),
+                  );
                   return;
                 }
                 Navigator.of(
@@ -987,10 +1053,41 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
             isLoading = false;
           });
         }
+
+        // Show rejection reason with a button to navigate to home screen
         final rejectionReason = result['reason'] ?? 'Rejected by delivery boy';
-        logger.i('Order ${order.id} rejected with reason: $rejectionReason');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم رفض الطلب: $rejectionReason'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'الرئيسية',
+              textColor: Colors.white,
+              onPressed: () {
+                // Navigate to home screen when button is pressed
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        DeliveryHomeScreen(email: widget.email),
+                  ),
+                  (route) => false, // Remove all previous routes
+                );
+              },
+            ),
+          ),
+        );
       } catch (e) {
         logger.e('Error rejecting order: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('فشل في رفض الطلب: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       } finally {
         if (mounted) {
           setState(() => isLoading = false);
@@ -1001,21 +1098,30 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
 
   void _makePhoneCall(String? phoneNumber) async {
     if (phoneNumber == null || phoneNumber.isEmpty) {
-      logger.w('Attempted to call with no phone number.');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('رقم الهاتف غير متوفر')));
       return;
     }
+
     final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
     try {
       if (await canLaunchUrl(launchUri)) {
         await launchUrl(launchUri);
       } else {
-        logger.e('Could not launch phone call to $phoneNumber');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('لا يمكن الاتصال بالرقم: $phoneNumber')),
+        );
       }
     } catch (e) {
       logger.e('Error making phone call: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('حدث خطأ أثناء محاولة الاتصال')));
     }
   }
 
+  // Helper method to capitalize the first letter of a string
   String _capitalizeFirstLetter(String text) {
     if (text.isEmpty) return text;
     return text[0].toUpperCase() + text.substring(1);
@@ -1023,17 +1129,28 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
 
   void _openChat(DeliveryOrder order) {
     if (order.customerEmail.isEmpty) {
-      logger.w(
-        'Cannot open chat: Customer email is not available for order ${order.id}.',
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'لا يمكن فتح المحادثة: بريد العميل غير متوفر',
+          ),
+        ),
       );
       return;
     }
-    if (!['accepted', 'in_transit'].contains(order.status?.toLowerCase())) {
-      logger.w(
-        'Cannot open chat: Order status (${order.status}) does not allow chat for order ${order.id}.',
+
+    if (![
+      'accepted',
+      'in_transit',
+    ].contains(order.status?.toLowerCase())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('لا يمكن فتح المحادثة: حالة الطلب لا تسمح بذلك'),
+        ),
       );
       return;
     }
+
     setState(() {
       _selectedOrderId = order.id;
       _isChatOpen = true;
@@ -1041,44 +1158,40 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
 
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('Chat with Customer'),
-            contentPadding: EdgeInsets.zero,
-            content: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.9,
-              height: MediaQuery.of(context).size.height * 0.7,
-              child: ChatWidget(
-                assignmentId: order.id,
-                userEmail: order.customerEmail,
-                deliveryBoyEmail: widget.email,
-                currentSenderEmail: widget.email,
-                currentSenderType: 'delivery_boy',
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text('Close'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: Text('Chat with Customer'),
+        content: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.8,
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: ChatWidget(
+            assignmentId: order.id,
+            userEmail: order.customerEmail,
+            deliveryBoyEmail: widget.email,
+            currentSenderEmail: widget.email,
+            currentSenderType: 'delivery_boy',
           ),
-    ).then((_) {
-      if (mounted) {
-        setState(() {
-          _isChatOpen = false;
-          _selectedOrderId = null;
-        });
-        _loadUnreadAssignments();
-      }
-    });
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              setState(() {
+                _isChatOpen = false;
+                _selectedOrderId = null;
+              });
+            },
+            child: Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildCustomerInfo(DeliveryOrder order) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
+      margin: const EdgeInsets.symmetric(
+          vertical: 4,
+          horizontal: 0), // Increased vertical margin for better visibility
       elevation: 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
@@ -1147,34 +1260,14 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                         ),
                         tooltip: 'Call Customer',
                       ),
-                    Stack(
-                      children: [
-                        IconButton(
-                          onPressed: () => _openChat(order),
-                          icon: Icon(
-                            Icons.chat_outlined,
-                            color: AppTheme.light.colorScheme.primary,
-                            size: 22,
-                          ),
-                          tooltip: 'Chat with Customer',
-                        ),
-                        if (_unreadAssignments.contains(order.id))
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              padding: EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: BoxConstraints(
-                                minWidth: 10,
-                                minHeight: 10,
-                              ),
-                            ),
-                          ),
-                      ],
+                    IconButton(
+                      onPressed: () => _openChat(order),
+                      icon: Icon(
+                        Icons.chat_outlined,
+                        color: AppTheme.light.colorScheme.primary,
+                        size: 22,
+                      ),
+                      tooltip: 'Chat with Customer',
                     ),
                   ],
                 ),
@@ -1248,7 +1341,11 @@ class _DeliveryConfirmationDialogState
         TextButton(
           onPressed: () {
             if (!isDelivered && _reasonController.text.isEmpty) {
-              logger.w('Attempted to confirm delivery issue without a reason.');
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please provide a reason for rejection'),
+                ),
+              );
               return;
             }
             Navigator.pop(context, {

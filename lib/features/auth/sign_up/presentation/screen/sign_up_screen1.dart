@@ -90,7 +90,7 @@ class _SignUpScreen1State extends State<SignUpScreen1> {
     String endpoint =
         typeController.text == 'customer'
             ? ApiConstants.registerCreate
-            : '${ApiConstants.baseUrl}/api/delivery_boys/create/';
+            : '${ApiConstants.baseUrl}/delivery_boys/create/';
 
     try {
       final response = await http.post(
@@ -236,8 +236,7 @@ class _SignUpScreen1State extends State<SignUpScreen1> {
                   ),
                   onTap: () {
                     setState(() {
-                      typeController.text =
-                          typeChoices['Customer'] ?? 'customer';
+                      typeController.text = typeChoices['Customer'] ?? 'customer';
                       displayTypeController.text = 'Customer';
                     });
                     Navigator.pop(context);
@@ -267,8 +266,7 @@ class _SignUpScreen1State extends State<SignUpScreen1> {
                   ),
                   onTap: () {
                     setState(() {
-                      typeController.text =
-                          typeChoices['Delivery Boy'] ?? 'delivery_boy';
+                      typeController.text = typeChoices['Delivery Boy'] ?? 'delivery_boy';
                       displayTypeController.text = 'Delivery Boy';
                     });
                     Navigator.pop(context);
@@ -527,16 +525,13 @@ class _SignUpScreen1State extends State<SignUpScreen1> {
         ),
         const SizedBox(height: 10),
         TextFormField(
-          controller:
-              controller == typeController ? displayTypeController : controller,
+          controller: controller == typeController ? displayTypeController : controller,
           readOnly: true,
           onTap: onTap,
-          validator:
-              (value) =>
-                  value == null || value.isEmpty
-                      ? 'This field is required'
-                      : null,
-          style: TextStyle(color: AppTheme.light.colorScheme.primary),
+          validator: (value) => value == null || value.isEmpty ? 'This field is required' : null,
+          style: TextStyle(
+            color: AppTheme.light.colorScheme.primary,
+          ),
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: const TextStyle(color: Colors.grey),

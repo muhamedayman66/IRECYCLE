@@ -160,79 +160,79 @@ class _DeliveryHomeScreenContentState extends State<DeliveryHomeScreenContent> {
     return Scaffold(
       backgroundColor: AppTheme.light.colorScheme.secondary,
       body: SafeArea(
-        child:
-            _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
                 ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Error loading data: $_error',
-                        textAlign: TextAlign.center,
-                      ),
-                      ElevatedButton(
-                        onPressed: loadDashboardData,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-                : LayoutBuilder(
-                  builder: (context, constraints) {
-                    final maxHeight = constraints.maxHeight;
-                    final maxWidth = constraints.maxWidth;
-                    final padding = maxWidth * 0.04;
-                    final fontScale = maxWidth / 400;
-
-                    return Column(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildHeader(
-                          context,
-                          maxWidth,
-                          maxHeight,
-                          padding,
-                          fontScale,
+                        Text(
+                          'Error loading data: $_error',
+                          textAlign: TextAlign.center,
                         ),
-                        Expanded(
-                          child: RefreshIndicator(
-                            onRefresh: loadDashboardData,
-                            child: ListView(
-                              padding: EdgeInsets.only(bottom: maxHeight * 0.1),
-                              children: [
-                                SizedBox(height: maxHeight * 0.015),
-                                _buildPointsCard(
-                                  context,
-                                  maxWidth,
-                                  maxHeight,
-                                  padding,
-                                  fontScale,
-                                ),
-                                SizedBox(height: maxHeight * 0.015),
-                                _buildQuickStats(
-                                  context,
-                                  maxWidth,
-                                  maxHeight,
-                                  padding,
-                                  fontScale,
-                                ),
-                                SizedBox(height: maxHeight * 0.015),
-                                _buildTipCard(
-                                  context,
-                                  maxWidth,
-                                  maxHeight,
-                                  padding,
-                                  fontScale,
-                                ),
-                              ],
-                            ),
-                          ),
+                        ElevatedButton(
+                          onPressed: loadDashboardData,
+                          child: const Text('Retry'),
                         ),
                       ],
-                    );
-                  },
-                ),
+                    ),
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final maxHeight = constraints.maxHeight;
+                      final maxWidth = constraints.maxWidth;
+                      final padding = maxWidth * 0.04;
+                      final fontScale = maxWidth / 400;
+
+                      return Column(
+                        children: [
+                          _buildHeader(
+                            context,
+                            maxWidth,
+                            maxHeight,
+                            padding,
+                            fontScale,
+                          ),
+                          Expanded(
+                            child: RefreshIndicator(
+                              onRefresh: loadDashboardData,
+                              child: ListView(
+                                padding:
+                                    EdgeInsets.only(bottom: maxHeight * 0.1),
+                                children: [
+                                  SizedBox(height: maxHeight * 0.015),
+                                  _buildPointsCard(
+                                    context,
+                                    maxWidth,
+                                    maxHeight,
+                                    padding,
+                                    fontScale,
+                                  ),
+                                  SizedBox(height: maxHeight * 0.015),
+                                  _buildQuickStats(
+                                    context,
+                                    maxWidth,
+                                    maxHeight,
+                                    padding,
+                                    fontScale,
+                                  ),
+                                  SizedBox(height: maxHeight * 0.015),
+                                  _buildTipCard(
+                                    context,
+                                    maxWidth,
+                                    maxHeight,
+                                    padding,
+                                    fontScale,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
       ),
     );
   }
@@ -319,10 +319,9 @@ class _DeliveryHomeScreenContentState extends State<DeliveryHomeScreenContent> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder:
-                              (context) => DeliveryNotificationsScreen(
-                                email: widget.email,
-                              ),
+                          builder: (context) => DeliveryNotificationsScreen(
+                            email: widget.email,
+                          ),
                         ),
                       ).then((_) {
                         setState(() {
@@ -355,32 +354,29 @@ class _DeliveryHomeScreenContentState extends State<DeliveryHomeScreenContent> {
   }
 
   Widget _buildUserInfo(double maxWidth, double maxHeight, double fontScale) {
-    String capitalize(String? s) =>
-        (s?.isNotEmpty ?? false)
-            ? '${s![0].toUpperCase()}${s.substring(1).toLowerCase()}'
-            : 'Not Set';
-    final String displayName =
-        _dashboardData?.firstName != null && _dashboardData?.lastName != null
-            ? '${capitalize(_dashboardData?.firstName)} ${capitalize(_dashboardData?.lastName)}'
-            : 'User';
+    String capitalize(String? s) => (s?.isNotEmpty ?? false)
+        ? '${s![0].toUpperCase()}${s.substring(1).toLowerCase()}'
+        : 'Not Set';
+    final String displayName = _dashboardData?.firstName != null &&
+            _dashboardData?.lastName != null
+        ? '${capitalize(_dashboardData?.firstName)} ${capitalize(_dashboardData?.lastName)}'
+        : 'User';
 
     return Row(
       children: [
         CircleAvatar(
           radius: maxWidth * 0.08,
-          backgroundImage:
-              _dashboardData?.profileImage != null
-                  ? NetworkImage(_dashboardData!.profileImage!)
-                  : null,
+          backgroundImage: _dashboardData?.profileImage != null
+              ? NetworkImage(_dashboardData!.profileImage!)
+              : null,
           backgroundColor: Colors.grey[200],
-          child:
-              _dashboardData?.profileImage == null
-                  ? Icon(
-                    Icons.person,
-                    size: maxWidth * 0.08,
-                    color: Colors.grey[600],
-                  )
-                  : null,
+          child: _dashboardData?.profileImage == null
+              ? Icon(
+                  Icons.person,
+                  size: maxWidth * 0.08,
+                  color: Colors.grey[600],
+                )
+              : null,
         ),
         SizedBox(width: maxWidth * 0.03),
         Column(
@@ -535,7 +531,7 @@ class _DeliveryHomeScreenContentState extends State<DeliveryHomeScreenContent> {
                     child: Row(
                       children: [
                         Text(
-                          "${((_dashboardData?.totalPoints ?? 0) / 20.0).toStringAsFixed(2)}",
+                          "${_dashboardData?.totalRewards.toStringAsFixed(2) ?? '0.00'}",
                           style: TextStyle(
                             color: AppTheme.light.colorScheme.primary,
                             fontSize: 16 * fontScale,
@@ -776,8 +772,7 @@ class _DeliveryHomeScreenContentState extends State<DeliveryHomeScreenContent> {
     );
   }
 
-  String capitalize(String? s) =>
-      (s?.isNotEmpty ?? false)
-          ? '${s![0].toUpperCase()}${s.substring(1).toLowerCase()}'
-          : 'Not Set';
+  String capitalize(String? s) => (s?.isNotEmpty ?? false)
+      ? '${s![0].toUpperCase()}${s.substring(1).toLowerCase()}'
+      : 'Not Set';
 }
