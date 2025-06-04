@@ -1,6 +1,6 @@
 class ApiConstants {
   //static const String baseUrl = 'http://10.0.2.2:8000';
-  static const String baseUrl = 'https://7036-156-209-97-155.ngrok-free.app';
+  static const String baseUrl = 'https://4d7d-156-209-0-235.ngrok-free.app';
 
   // User-related endpoints
   static const String registers = '$baseUrl/api/registers/';
