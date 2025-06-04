@@ -7,7 +7,8 @@ import 'package:graduation_project11/core/themes/app__theme.dart';
 import 'package:graduation_project11/core/utils/shared_keys.dart';
 import 'package:graduation_project11/core/widgets/custom_appbar.dart';
 import 'package:graduation_project11/features/recycling/presentation/screens/order_status_screen.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart' as fm;
+import 'package:latlong2/latlong.dart' as latLng;
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,7 +34,7 @@ class PlaceOrderScreen extends StatefulWidget {
 class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
   final logger = Logger();
   String? address = "Loading your saved address...";
-  LatLng? _currentPosition;
+  latLng.LatLng? _currentPosition; // Changed to latlong2.LatLng
   bool _isLoading = false;
   String? _userEmail;
 
@@ -177,7 +178,8 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
         final data = jsonDecode(response.body);
         if (data.isNotEmpty) {
           setState(() {
-            _currentPosition = LatLng(
+            _currentPosition = latLng.LatLng(
+              // Changed to latlong2.LatLng
               double.parse(data[0]['latitude'].toString()),
               double.parse(data[0]['longitude'].toString()),
             );
@@ -239,7 +241,10 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
         String formattedAddress = components.join('، ');
 
         setState(() {
-          _currentPosition = LatLng(position.latitude, position.longitude);
+          _currentPosition = latLng.LatLng(
+            position.latitude,
+            position.longitude,
+          ); // Changed to latlong2.LatLng
           address = formattedAddress;
         });
 
@@ -411,13 +416,13 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.light.colorScheme.secondary,
+      backgroundColor: Colors.grey[100], // Changed background color
       appBar: CustomAppBar(
-        title: 'Place Order',
+        title: 'Confirm Order Details', // Updated title
         leading: IconButton(
           icon: Icon(
             CupertinoIcons.back,
-            color: AppTheme.light.colorScheme.secondary,
+            color: AppTheme.light.colorScheme.primary, // Adjusted color
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -425,152 +430,212 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
       body: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 10),
+            padding: const EdgeInsets.all(16.0), // Consistent padding
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppTheme.light.colorScheme.primary,
+                // Map Section
+                Expanded(
+                  flex: 3, // Give map more space
+                  child: Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15.0),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child:
+                        _currentPosition == null
+                            ? const Center(child: CircularProgressIndicator())
+                            : fm.FlutterMap(
+                              options: fm.MapOptions(
+                                initialCenter: _currentPosition!,
+                                initialZoom: 15.0,
+                                interactionOptions: const fm.InteractionOptions(
+                                  flags:
+                                      fm.InteractiveFlag.all &
+                                      ~fm.InteractiveFlag.rotate,
+                                ),
+                              ),
+                              children: [
+                                fm.TileLayer(
+                                  urlTemplate:
+                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  userAgentPackageName:
+                                      'com.irecycle.app', // Replace with your actual package name
+                                ),
+                                if (_currentPosition != null)
+                                  fm.MarkerLayer(
+                                    markers: [
+                                      fm.Marker(
+                                        width: 80.0,
+                                        height: 80.0,
+                                        point: _currentPosition!,
+                                        child: Icon(
+                                          Icons.location_pin,
+                                          color: Colors.red,
+                                          size: 40.0,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Address Section
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.location_pin,
+                          color: AppTheme.light.colorScheme.primary,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Pickup Address',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.light.colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                address ?? 'Loading address...',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: _showEditAddressDialog,
+                          child: Text(
+                            "Change",
+                            style: TextStyle(
+                              color: Colors.teal,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(20),
+                ),
+                const SizedBox(height: 16),
+
+                // Items Summary Section
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Order Summary',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.light.colorScheme.primary,
+                          ),
                         ),
-                        child: Container(
-                          height: 200,
-                          color: Colors.grey[300],
-                          child:
-                              _currentPosition == null
-                                  ? const Center(
-                                    child: CircularProgressIndicator(),
-                                  )
-                                  : GoogleMap(
-                                    initialCameraPosition: CameraPosition(
-                                      target: _currentPosition!,
-                                      zoom: 14,
-                                    ),
-                                    zoomControlsEnabled: false,
-                                    zoomGesturesEnabled: true,
-                                    scrollGesturesEnabled: true,
-                                    rotateGesturesEnabled: true,
-                                    tiltGesturesEnabled: true,
-                                    markers: {
-                                      Marker(
-                                        markerId: const MarkerId(
-                                          'current-location',
-                                        ),
-                                        position: _currentPosition!,
-                                      ),
-                                    },
-                                    gestureRecognizers: {
-                                      Factory<PanGestureRecognizer>(
-                                        () => PanGestureRecognizer(),
-                                      ),
-                                      Factory<ScaleGestureRecognizer>(
-                                        () => ScaleGestureRecognizer(),
-                                      ),
-                                      Factory<TapGestureRecognizer>(
-                                        () => TapGestureRecognizer(),
-                                      ),
-                                    },
-                                  ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(Icons.location_on, color: Colors.green),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Address',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    address ?? 'No address found',
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ],
+                            Text(
+                              'Items to Recycle:',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.black87,
                               ),
                             ),
-                            TextButton(
-                              onPressed: _showEditAddressDialog,
-                              child: const Text(
-                                "Change",
-                                style: TextStyle(color: Colors.green),
+                            Text(
+                              '${widget.items.length} item(s)',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  height: 58,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppTheme.light.colorScheme.primary,
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Total Points:',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              '${widget.totalPoints} pts',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.green[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "🚚 Delivery",
-                            style: TextStyle(
-                              color: AppTheme.light.colorScheme.primary,
-                            ),
-                          ),
-                          const Text("Arriving in approx. 33 mins"),
-                        ],
-                      ),
-                    ],
-                  ),
                 ),
-                const Spacer(),
-                SizedBox(
-                  width: 325,
-                  height: 55,
-                  child: ElevatedButton(
+                const Spacer(), // Pushes button to bottom
+                // Confirm Button
+                Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: 16.0,
+                    top: 16.0,
+                  ), // Added top padding too
+                  child: ElevatedButton.icon(
+                    icon: const Icon(
+                      Icons.check_circle_outline,
+                      color: Colors.white,
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.light.colorScheme.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     onPressed: _isLoading ? null : _placeOrder,
-                    child: Text(
-                      "Confirm",
+                    label: Text(
+                      "Confirm & Place Order",
                       style: TextStyle(
-                        color: AppTheme.light.colorScheme.secondary,
-                        fontSize: 18,
+                        color: Colors.white, // Ensure text is white
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 80),
               ],
             ),
           ),

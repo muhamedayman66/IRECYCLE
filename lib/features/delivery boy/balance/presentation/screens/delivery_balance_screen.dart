@@ -10,7 +10,7 @@ import 'package:intl/intl.dart';
 class DeliveryBalanceScreen extends StatefulWidget {
   final String email;
   const DeliveryBalanceScreen({Key? key, required this.email})
-      : super(key: key);
+    : super(key: key);
 
   @override
   State<DeliveryBalanceScreen> createState() => _DeliveryBalanceScreenState();
@@ -80,9 +80,11 @@ class _DeliveryBalanceScreenState extends State<DeliveryBalanceScreen>
 
       setState(() {
         points = data['points'] as int;
-        rewardBalance = data['rewards'] as double;
-        nextRewardAmount = data['next_reward_amount']
-            as double; // Added for next reward amount
+        rewardBalance =
+            (data['points'] as int) / 20.0; // Calculate rewards from points
+        nextRewardAmount =
+            data['next_reward_amount']
+                as double; // Added for next reward amount
         activities = data['activities'] as List<Map<String, dynamic>>;
         firstName = data['first_name'] as String;
         lastName = data['last_name'] as String;
@@ -105,83 +107,83 @@ class _DeliveryBalanceScreenState extends State<DeliveryBalanceScreen>
     return Scaffold(
       backgroundColor: AppTheme.light.colorScheme.secondary,
       appBar: CustomAppBar(title: 'Balance'),
-      body: isLoading
-          ? const Center(
-              child: RepaintBoundary(child: CircularProgressIndicator()),
-            )
-          : error != null
+      body:
+          isLoading
+              ? const Center(
+                child: RepaintBoundary(child: CircularProgressIndicator()),
+              )
+              : error != null
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Error: $error',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: loadBalanceData,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: loadBalanceData,
-                  child: CustomScrollView(
-                    controller: _scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    cacheExtent: 1000,
-                    slivers: [
-                      SliverPadding(
-                        padding: const EdgeInsets.all(16.0),
-                        sliver: SliverList(
-                          delegate: SliverChildListDelegate([
-                            _buildDeliveryBoyInfo(),
-                            const SizedBox(height: 16),
-                            _buildBalanceCard(),
-                            const SizedBox(height: 24),
-                            if (activities.isNotEmpty) ...[
-                              Text(
-                                'Last Activity',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.light.colorScheme.primary,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-                          ]),
-                        ),
-                      ),
-                      if (activities.isEmpty)
-                        const SliverFillRemaining(
-                          child: Center(
-                            child: Text(
-                              'No activities yet',
-                              style:
-                                  TextStyle(color: Colors.grey, fontSize: 16),
-                            ),
-                          ),
-                        )
-                      else
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) =>
-                                  _buildActivityItem(activities[index]),
-                              childCount: activities.length,
-                              addAutomaticKeepAlives: false,
-                              addRepaintBoundaries: true,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Error: $error',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: loadBalanceData,
+                      child: const Text('Retry'),
+                    ),
+                  ],
                 ),
+              )
+              : RefreshIndicator(
+                onRefresh: loadBalanceData,
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  cacheExtent: 1000,
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.all(16.0),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          _buildDeliveryBoyInfo(),
+                          const SizedBox(height: 16),
+                          _buildBalanceCard(),
+                          const SizedBox(height: 24),
+                          if (activities.isNotEmpty) ...[
+                            Text(
+                              'Last Activity',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.light.colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ]),
+                      ),
+                    ),
+                    if (activities.isEmpty)
+                      const SliverFillRemaining(
+                        child: Center(
+                          child: Text(
+                            'No activities yet',
+                            style: TextStyle(color: Colors.grey, fontSize: 16),
+                          ),
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) =>
+                                _buildActivityItem(activities[index]),
+                            childCount: activities.length,
+                            addAutomaticKeepAlives: false,
+                            addRepaintBoundaries: true,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
     );
   }
 

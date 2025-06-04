@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Added for input formatters
 import 'package:graduation_project11/core/api/api_constants.dart';
 import 'package:graduation_project11/core/themes/app__theme.dart';
 import 'package:graduation_project11/core/utils/shared_keys.dart';
@@ -39,9 +40,9 @@ class _DeliveryVoucherScreenState extends State<DeliveryVoucherScreen> {
     String? email = prefs.getString(SharedKeys.userEmail);
 
     if (email == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please log in first")),
-      );
+      // ScaffoldMessenger.of(
+      //   context,
+      // ).showSnackBar(const SnackBar(content: Text("Please log in first")));
       return;
     }
 
@@ -94,7 +95,8 @@ class _DeliveryVoucherScreenState extends State<DeliveryVoucherScreen> {
               if (rawQrCodeUrl.startsWith('http')) {
                 _qrCodeUrl = rawQrCodeUrl;
               } else {
-                _qrCodeUrl = ApiConstants.baseUrl +
+                _qrCodeUrl =
+                    ApiConstants.baseUrl +
                     (rawQrCodeUrl.startsWith('/')
                         ? rawQrCodeUrl
                         : '/$rawQrCodeUrl');
@@ -117,7 +119,8 @@ class _DeliveryVoucherScreenState extends State<DeliveryVoucherScreen> {
             _qrCodeUrl = null;
             _qrCodeExpiry = null;
             print(
-                'No active QR code found in API response or active_voucher data missing.');
+              'No active QR code found in API response or active_voucher data missing.',
+            );
           }
         });
       } else {
@@ -125,9 +128,9 @@ class _DeliveryVoucherScreenState extends State<DeliveryVoucherScreen> {
       }
     } catch (e) {
       print('Error loading user data or QR status: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading data: $e')),
-      );
+      // ScaffoldMessenger.of(
+      //   context,
+      // ).showSnackBar(SnackBar(content: Text('Error loading data: $e')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -152,12 +155,14 @@ class _DeliveryVoucherScreenState extends State<DeliveryVoucherScreen> {
     try {
       if (_hasActiveQRCode) {
         throw Exception(
-            'You have an active QR code that needs to be used or expire before generating a new voucher');
+          'You have an active QR code that needs to be used or expire before generating a new voucher',
+        );
       }
 
       if (_activeVoucher != null) {
         throw Exception(
-            'You have an active voucher that needs to be used or expire before generating a new one');
+          'You have an active voucher that needs to be used or expire before generating a new one',
+        );
       }
 
       final String amountText = _amountController.text.trim();
@@ -166,13 +171,17 @@ class _DeliveryVoucherScreenState extends State<DeliveryVoucherScreen> {
       final double? amount = double.tryParse(amountText);
       print('Parsed amount: $amount');
 
-      if (amountText.isEmpty || amount == null || amount <= 0) {
-        throw Exception('Please enter a valid amount');
+      if (amountText.isEmpty || amount == null) {
+        throw Exception('Please enter an amount.');
+      }
+      if (amount < 10) {
+        throw Exception('Minimum voucher amount is 10 EGP.');
       }
 
       if (amount > _balance) {
         throw Exception(
-            'Insufficient balance. Available balance: $_balance EGP');
+          'The amount exceeds your current balance of ${_balance.toStringAsFixed(2)} EGP.',
+        );
       }
 
       voucherResponse = await http.post(
@@ -190,25 +199,26 @@ class _DeliveryVoucherScreenState extends State<DeliveryVoucherScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => DeliveryQrCodeScreen(
-              code: voucher['code'],
-              amount: double.parse(voucher['amount'].toString()),
-              expiryDate: DateTime.parse(voucher['expires_at']),
-            ),
+            builder:
+                (context) => DeliveryQrCodeScreen(
+                  code: voucher['code'],
+                  amount: double.parse(voucher['amount'].toString()),
+                  expiryDate: DateTime.parse(voucher['expires_at']),
+                ),
           ),
         );
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(content: Text('Voucher generated successfully')),
-        );
+        // scaffoldMessenger.showSnackBar(
+        //   const SnackBar(content: Text('Voucher generated successfully')),
+        // );
       } else {
         final errorData = json.decode(voucherResponse.body);
         throw Exception(errorData['error'] ?? 'Failed to generate voucher');
       }
     } catch (e) {
       print('Error generating voucher: $e');
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
-      );
+      // scaffoldMessenger.showSnackBar(
+      //   SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+      // );
     } finally {
       if (mounted) {
         setState(() {
@@ -224,191 +234,203 @@ class _DeliveryVoucherScreenState extends State<DeliveryVoucherScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: const CustomAppBar(title: 'Voucher Generation'),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (_hasActiveQRCode) ...[
-                    Card(
-                      elevation: 4,
-                      color: theme.primaryColor,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'Active QR Code Found',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_hasActiveQRCode) ...[
+                      Card(
+                        elevation: 4,
+                        color: theme.primaryColor,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              const Text(
+                                'Active QR Code Found',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'You have an active QR code that needs to be used or expire before generating a new voucher.',
-                              style: const TextStyle(color: Colors.white),
-                              textAlign: TextAlign.center,
-                            ),
-                            if (_qrCodeExpiry != null) ...[
+                              const SizedBox(height: 16),
+                              Text(
+                                'You have an active QR code that needs to be used or expire before generating a new voucher.',
+                                style: const TextStyle(color: Colors.white),
+                                textAlign: TextAlign.center,
+                              ),
+                              if (_qrCodeExpiry != null) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Expires on: ${DateFormat('MMM dd, yyyy hh:mm a').format(_qrCodeExpiry!)}',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                              if (_qrCodeUrl != null && _qrCodeUrl!.isNotEmpty)
+                                Image.network(
+                                  _qrCodeUrl!,
+                                  height: 200,
+                                  width: 200,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    print(
+                                      'Error loading QR code image: $error',
+                                    );
+                                    return const Text(
+                                      'Error loading QR code image.',
+                                      style: TextStyle(color: Colors.white),
+                                    );
+                                  },
+                                  loadingBuilder: (
+                                    BuildContext context,
+                                    Widget child,
+                                    ImageChunkEvent? loadingProgress,
+                                  ) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value:
+                                            loadingProgress
+                                                        .expectedTotalBytes !=
+                                                    null
+                                                ? loadingProgress
+                                                        .cumulativeBytesLoaded /
+                                                    loadingProgress
+                                                        .expectedTotalBytes!
+                                                : null,
+                                      ),
+                                    );
+                                  },
+                                )
+                              else
+                                const Text(
+                                  'QR code image not available.',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ] else if (_activeVoucher != null) ...[
+                      Card(
+                        elevation: 4,
+                        color: theme.primaryColor,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              const Text(
+                                'Active Voucher Found',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'You have an active voucher (${_activeVoucher!['code']}) worth ${_activeVoucher!['amount']} EGP that needs to be used or expire before generating a new one.',
+                                style: const TextStyle(color: Colors.white),
+                                textAlign: TextAlign.center,
+                              ),
                               const SizedBox(height: 8),
                               Text(
-                                'Expires on: ${DateFormat('MMM dd, yyyy hh:mm a').format(_qrCodeExpiry!)}',
+                                'Expires on: ${DateFormat('MMM dd, yyyy hh:mm a').format(DateTime.parse(_activeVoucher!['expires_at']))}',
                                 style: const TextStyle(color: Colors.white),
                               ),
                             ],
-                            const SizedBox(height: 16),
-                            if (_qrCodeUrl != null && _qrCodeUrl!.isNotEmpty)
-                              Image.network(
-                                _qrCodeUrl!,
-                                height: 200,
-                                width: 200,
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) {
-                                  print('Error loading QR code image: $error');
-                                  return const Text(
-                                    'Error loading QR code image.',
-                                    style: TextStyle(color: Colors.white),
-                                  );
-                                },
-                                loadingBuilder: (BuildContext context,
-                                    Widget child,
-                                    ImageChunkEvent? loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return Center(
-                                    child: CircularProgressIndicator(
-                                      value:
-                                          loadingProgress.expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                      .cumulativeBytesLoaded /
-                                                  loadingProgress
-                                                      .expectedTotalBytes!
-                                              : null,
-                                    ),
-                                  );
-                                },
-                              )
-                            else
-                              const Text(
-                                'QR code image not available.',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontStyle: FontStyle.italic),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ] else if (_activeVoucher != null) ...[
-                    Card(
-                      elevation: 4,
-                      color: theme.primaryColor,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'Active Voucher Found',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'You have an active voucher (${_activeVoucher!['code']}) worth ${_activeVoucher!['amount']} EGP that needs to be used or expire before generating a new one.',
-                              style: const TextStyle(color: Colors.white),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Expires on: ${DateFormat('MMM dd, yyyy hh:mm a').format(DateTime.parse(_activeVoucher!['expires_at']))}',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ] else ...[
-                    // Balance Card
-                    Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppTheme.light.colorScheme.primary,
-                              AppTheme.light.colorScheme.primary
-                                  .withOpacity(0.8),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
                           ),
                         ),
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'Current Balance',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${_balance.toStringAsFixed(2)} EGP',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    // Amount Input
-                    TextField(
-                      controller: _amountController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Enter Amount (EGP)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        prefixIcon: const Icon(Icons.attach_money),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    // Generate Button
-                    ElevatedButton(
-                      onPressed: _generateVoucher,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
+                    ] else ...[
+                      // Balance Card
+                      Card(
+                        elevation: 4,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppTheme.light.colorScheme.primary,
+                                AppTheme.light.colorScheme.primary.withOpacity(
+                                  0.8,
+                                ),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              const Text(
+                                'Current Balance',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '${_balance.toStringAsFixed(2)} EGP',
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      child: const Text(
-                        'Generate Voucher',
-                        style: TextStyle(fontSize: 16),
+                      const SizedBox(height: 20),
+                      // Amount Input
+                      TextField(
+                        controller: _amountController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ], // Added
+                        decoration: InputDecoration(
+                          labelText: 'Enter Amount (EGP)',
+                          hintText: 'Min 10 EGP', // Added hint
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          prefixIcon: const Icon(Icons.attach_money),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 20),
+                      // Generate Button
+                      ElevatedButton(
+                        onPressed: _generateVoucher,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Generate Voucher',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
     );
   }
 

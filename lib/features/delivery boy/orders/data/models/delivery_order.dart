@@ -154,17 +154,19 @@ class DeliveryOrder {
       // else from recycle_bag.user_details (from history)
       final Map<String, dynamic> userDetailsToUse =
           json['user_details'] as Map<String, dynamic>? ??
-              recycleBagDetails['user_details'] as Map<String, dynamic>? ??
-              {};
+          recycleBagDetails['user_details'] as Map<String, dynamic>? ??
+          {};
 
       // Items: prefer top-level items if present, else from recycle_bag.items
       final itemsList = json['items'] ?? recycleBagDetails['items'];
 
       // Location fields: prefer top-level, fallback to recycle_bag
-      String finalLatitude = json['latitude']?.toString() ??
+      String finalLatitude =
+          json['latitude']?.toString() ??
           recycleBagDetails['latitude']?.toString() ??
           '';
-      String finalLongitude = json['longitude']?.toString() ??
+      String finalLongitude =
+          json['longitude']?.toString() ??
           recycleBagDetails['longitude']?.toString() ??
           '';
       // String finalLocation = 'N/A'; // 'location' is already defined and potentially set above
@@ -198,20 +200,26 @@ class DeliveryOrder {
 
       return DeliveryOrder(
         id: assignmentId, // Use assignment_id as the main ID for DeliveryOrder
-        status: json['status']?.toString() ??
+        status:
+            json['status']?.toString() ??
             recycleBagDetails['status']?.toString(), // Prefer top-level status
         recycleBagId: bagId,
-        customerName: userDetailsToUse['name']?.toString() ??
+        customerName:
+            userDetailsToUse['name']?.toString() ??
             ('${userDetailsToUse['first_name']?.toString() ?? ''} ${userDetailsToUse['last_name']?.toString() ?? ''}')
                 .trim(),
         customerEmail: parsedCustomerEmail,
-        customerPhone: userDetailsToUse['phone_number']?.toString() ??
+        customerPhone:
+            userDetailsToUse['phone_number']?.toString() ??
             userDetailsToUse['phone']?.toString() ??
             'N/A',
-        governorate: json['governorate']?.toString() ??
-            recycleBagDetails['governorate']?.toString() ??
-            'N/A',
-        address: json['address']?.toString() ??
+        governorate:
+            json['governorate']?.toString() ?? // Check top-level first
+            userDetailsToUse['governorate']
+                ?.toString() ?? // Then check consolidated user_details
+            'N/A', // Fallback
+        address:
+            json['address']?.toString() ??
             recycleBagDetails['address']?.toString() ??
             'N/A',
         location:
@@ -222,8 +230,12 @@ class DeliveryOrder {
         assignedTime: assignedTime,
         items: RecycleBagItem.parseItems(itemsList),
         discrepancyReport: json['discrepancy_report']?.toString(),
-        deliveryBoy: json['delivery_boy']
-            as Map<String, dynamic>?, // Top-level delivery_boy for assignment
+        deliveryBoy:
+            json['delivery_boy']
+                as Map<
+                  String,
+                  dynamic
+                >?, // Top-level delivery_boy for assignment
       );
     } catch (e, stackTrace) {
       logger.e('Error parsing DeliveryOrder: $e');
@@ -397,7 +409,8 @@ class RecycleBagItem {
     try {
       logger.i('Parsing RecycleBagItem: $json');
 
-      final itemType = json['item_type']?.toString() ??
+      final itemType =
+          json['item_type']?.toString() ??
           json['type']?.toString() ??
           'Unknown';
       final quantity = int.tryParse(json['quantity']?.toString() ?? '') ?? 0;

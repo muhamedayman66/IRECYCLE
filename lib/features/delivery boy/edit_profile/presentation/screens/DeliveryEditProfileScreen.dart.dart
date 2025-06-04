@@ -26,9 +26,12 @@ class _DeliveryEditProfileScreenState extends State<DeliveryEditProfileScreen> {
 
   File? _profileImage;
   String? _profileImageUrl;
-  bool _isLoading = false;
-  bool _hasError = false;
-  bool _dobError = false;
+  // int? _deliveryBoyId; // REMOVED: No longer using ID from profile data
+  bool _isLoading = true; // Start with loading true
+  bool _hasError =
+      false; // Kept for potential future use, not directly used in current logic
+  bool _dobError = false; // Kept for Date of Birth specific error
+  bool _profileLoadFailed = false; // New flag for load failure
 
   String? selectedYear, selectedMonth, selectedDay;
 
@@ -65,24 +68,51 @@ class _DeliveryEditProfileScreenState extends State<DeliveryEditProfileScreen> {
   @override
   void initState() {
     super.initState();
+    print(
+      'DELIVERY_EDIT_PROFILE: initState CALLED. Email from widget: ${widget.email}',
+    );
     _loadProfileData();
   }
 
   Future<void> _loadProfileData() async {
-    if (widget.email == null) return;
+    print(
+      'DELIVERY_EDIT_PROFILE: _loadProfileData started for email: ${widget.email}',
+    );
+    if (widget.email == null || widget.email!.isEmpty) {
+      print(
+        'DELIVERY_EDIT_PROFILE: widget.email is null or empty, cannot load profile.',
+      );
+      setState(() {
+        _isLoading = false;
+        _profileLoadFailed = true;
+      });
+      return;
+    }
 
     try {
-      setState(() => _isLoading = true);
+      // _isLoading is already true from initState or retry button
       final profileData = await DeliveryProfileService.getProfile(
         widget.email!,
       );
-
+      print(
+        'DELIVERY_EDIT_PROFILE: Fetched profileData from service: $profileData',
+      );
+      if (profileData.isEmpty) {
+        print(
+          'DELIVERY_EDIT_PROFILE: CRITICAL: profileData is empty. This will prevent profile updates. Verify API response.',
+        );
+        setState(() {
+          _profileLoadFailed = true;
+          _isLoading = false;
+        });
+        return;
+      }
       setState(() {
         firstNameController.text = profileData['first_name'] ?? '';
         lastNameController.text = profileData['last_name'] ?? '';
         genderController.text = profileData['gender'] ?? '';
         dobController.text = profileData['dob'] ?? '';
-        emailController.text = widget.email!;
+        emailController.text = widget.email!; // Email is known from widget
         phoneController.text = profileData['phone'] ?? '';
         _profileImageUrl = profileData['profile_image'];
         final governorateValue =
@@ -92,14 +122,20 @@ class _DeliveryEditProfileScreenState extends State<DeliveryEditProfileScreen> {
           orElse: () => {'value': '', 'display': ''},
         );
         governorateController.text = governorate['display'] ?? '';
+
         _isLoading = false;
+        _profileLoadFailed = false; // Explicitly set to false on success
       });
     } catch (e) {
-      setState(() => _isLoading = false);
+      print('DELIVERY_EDIT_PROFILE: Error in _loadProfileData: $e');
+      setState(() {
+        _isLoading = false;
+        _profileLoadFailed = true;
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading profile: $e'),
+            content: Text('Error loading profile data: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -255,7 +291,8 @@ class _DeliveryEditProfileScreenState extends State<DeliveryEditProfileScreen> {
                               color: AppTheme.light.colorScheme.primary,
                             ),
                             onTap: () {
-                              setState(() {
+                              // Use the main _DeliveryEditProfileScreenState's setState
+                              this.setState(() {
                                 governorateController.text =
                                     filteredGovernorates[index]['display']!;
                               });
@@ -356,7 +393,8 @@ class _DeliveryEditProfileScreenState extends State<DeliveryEditProfileScreen> {
                         if (selectedYear != null &&
                             selectedMonth != null &&
                             selectedDay != null) {
-                          setState(() {
+                          // Use the main _DeliveryEditProfileScreenState's setState
+                          this.setState(() {
                             dobController.text =
                                 "$selectedYear-$selectedMonth-$selectedDay";
                             _dobError = false;
@@ -386,7 +424,27 @@ class _DeliveryEditProfileScreenState extends State<DeliveryEditProfileScreen> {
   }
 
   Future<void> _updateProfile() async {
-    if (!_formKey.currentState!.validate()) return;
+    print(
+      'DELIVERY_EDIT_PROFILE: _updateProfile started. Using email: ${widget.email}',
+    );
+    if (!_formKey.currentState!.validate()) {
+      print('DELIVERY_EDIT_PROFILE: Form validation failed.');
+      return;
+    }
+    if (widget.email == null || widget.email!.isEmpty) {
+      print(
+        'DELIVERY_EDIT_PROFILE: Email is null or empty. Cannot update profile.',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User email not found. Cannot update profile.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -398,7 +456,8 @@ class _DeliveryEditProfileScreenState extends State<DeliveryEditProfileScreen> {
       );
 
       final success = await DeliveryProfileService.updateProfile(
-        email: widget.email!,
+        // id: _deliveryBoyId!, // REMOVED ID
+        email: widget.email!, // Email is now the primary identifier
         firstName: firstNameController.text,
         lastName: lastNameController.text,
         gender: genderController.text,
@@ -417,7 +476,7 @@ class _DeliveryEditProfileScreenState extends State<DeliveryEditProfileScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context); // Go back after successful update
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -448,146 +507,217 @@ class _DeliveryEditProfileScreenState extends State<DeliveryEditProfileScreen> {
         ),
         title: 'Edit Profile',
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              Center(
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundImage:
-                          _profileImage != null
-                              ? FileImage(_profileImage!) as ImageProvider
-                              : (_profileImageUrl != null &&
-                                      _profileImageUrl!.isNotEmpty
-                                  ? NetworkImage(_profileImageUrl!)
-                                  : null),
-                      backgroundColor: Colors.grey[300],
-                      child:
-                          _profileImage == null &&
-                                  (_profileImageUrl == null ||
-                                      _profileImageUrl!.isEmpty)
-                              ? Icon(
-                                Icons.person,
-                                size: 50,
-                                color: Colors.grey[600],
-                              )
-                              : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: _pickImage,
-                        child: CircleAvatar(
-                          radius: 15,
-                          backgroundColor: AppTheme.light.colorScheme.primary,
-                          child: const Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: 16,
-                          ),
+      body:
+          _isLoading &&
+                  !_profileLoadFailed // Check if still loading initial data
+              ? Center(
+                child: CircularProgressIndicator(
+                  color: AppTheme.light.colorScheme.primary,
+                ),
+              )
+              : _profileLoadFailed
+              ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red, size: 50),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Failed to load profile data.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: AppTheme.light.colorScheme.primary,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Text(
+                        (widget.email == null || widget.email!.isEmpty)
+                            ? 'User email is missing. Cannot display or update profile.'
+                            : 'An error occurred. Please check your connection and try again.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        icon: Icon(Icons.refresh),
+                        label: const Text('Retry'),
+                        onPressed: () {
+                          setState(() {
+                            _isLoading = true;
+                            _profileLoadFailed = false;
+                          });
+                          _loadProfileData();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.light.colorScheme.primary,
+                          foregroundColor: AppTheme.light.colorScheme.secondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              : SingleChildScrollView(
+                // Display form if loading is complete and not failed
+                padding: const EdgeInsets.all(12.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      Center(
+                        child: Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 50,
+                              backgroundImage:
+                                  _profileImage != null
+                                      ? FileImage(_profileImage!)
+                                          as ImageProvider
+                                      : (_profileImageUrl != null &&
+                                              _profileImageUrl!.isNotEmpty
+                                          ? NetworkImage(_profileImageUrl!)
+                                          : null),
+                              backgroundColor: Colors.grey[300],
+                              child:
+                                  _profileImage == null &&
+                                          (_profileImageUrl == null ||
+                                              _profileImageUrl!.isEmpty)
+                                      ? Icon(
+                                        Icons.person,
+                                        size: 50,
+                                        color: Colors.grey[600],
+                                      )
+                                      : null,
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap: _pickImage,
+                                child: CircleAvatar(
+                                  radius: 15,
+                                  backgroundColor:
+                                      AppTheme.light.colorScheme.primary,
+                                  child: const Icon(
+                                    Icons.edit,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: buildTextField(
+                              label: 'First Name',
+                              controller: firstNameController,
+                              hint: 'Enter your first name',
+                              validator:
+                                  (value) =>
+                                      value!.isEmpty
+                                          ? 'This field is required'
+                                          : null,
+                            ),
+                          ),
+                          const SizedBox(width: 40),
+                          Expanded(
+                            child: buildTextField(
+                              label: 'Last Name',
+                              controller: lastNameController,
+                              hint: 'Enter your last name',
+                              validator:
+                                  (value) =>
+                                      value!.isEmpty
+                                          ? 'This field is required'
+                                          : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      buildSelectableFormField(
+                        label: 'Gender',
+                        hintText: 'Select your gender',
+                        controller: genderController,
+                        onTap: _selectGender,
+                      ),
+                      const SizedBox(height: 20),
+                      buildSelectableFormField(
+                        label: 'Date Of Birth',
+                        hintText: 'Select your date of birth',
+                        controller: dobController,
+                        onTap: () => _showDatePicker(context),
+                      ),
+                      const SizedBox(height: 20),
+                      buildSelectableFormField(
+                        label: 'Governorate',
+                        hintText: 'Select your governorate',
+                        controller: governorateController,
+                        onTap: _selectGovernorate,
+                      ),
+                      const SizedBox(height: 20),
+                      buildTextField(
+                        label: 'Phone Number',
+                        controller: phoneController,
+                        hint: 'Enter your phone number',
+                        validator: (value) {
+                          if (value!.isEmpty) return 'This field is required';
+                          if (value.length < 11) {
+                            return 'Phone Number Is Not Valid';
+                          }
+                          String phonePattern = r'^01[0125][0-9]{8}$';
+                          if (!RegExp(phonePattern).hasMatch(value)) {
+                            return 'Please enter a valid phone number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 30),
+                      _isLoading &&
+                              !_profileLoadFailed // Show progress if loading for update (not initial profile load)
+                          ? CircularProgressIndicator(
+                            color: AppTheme.light.colorScheme.primary,
+                          )
+                          : ElevatedButton(
+                            onPressed:
+                                (widget.email == null ||
+                                            widget.email!.isEmpty) ||
+                                        _profileLoadFailed ||
+                                        (_isLoading && !_profileLoadFailed)
+                                    ? null // Disable if email is invalid, load failed, or update is in progress
+                                    : _updateProfile,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  AppTheme.light.colorScheme.primary,
+                              disabledBackgroundColor: Colors.grey[400],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 30,
+                              ),
+                            ),
+                            child: Text(
+                              'Update Profile',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: AppTheme.light.colorScheme.secondary,
+                              ),
+                            ),
+                          ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 30),
-              Row(
-                children: [
-                  Expanded(
-                    child: buildTextField(
-                      label: 'First Name',
-                      controller: firstNameController,
-                      hint: 'Enter your first name',
-                      validator:
-                          (value) =>
-                              value!.isEmpty ? 'This field is required' : null,
-                    ),
-                  ),
-                  const SizedBox(width: 40),
-                  Expanded(
-                    child: buildTextField(
-                      label: 'Last Name',
-                      controller: lastNameController,
-                      hint: 'Enter your last name',
-                      validator:
-                          (value) =>
-                              value!.isEmpty ? 'This field is required' : null,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              buildSelectableFormField(
-                label: 'Gender',
-                hintText: 'Select your gender',
-                controller: genderController,
-                onTap: _selectGender,
-              ),
-              const SizedBox(height: 20),
-              buildSelectableFormField(
-                label: 'Date Of Birth',
-                hintText: 'Select your date of birth',
-                controller: dobController,
-                onTap: () => _showDatePicker(context),
-              ),
-              const SizedBox(height: 20),
-              buildSelectableFormField(
-                label: 'Governorate',
-                hintText: 'Select your governorate',
-                controller: governorateController,
-                onTap: _selectGovernorate,
-              ),
-              const SizedBox(height: 20),
-              buildTextField(
-                label: 'Phone Number',
-                controller: phoneController,
-                hint: 'Enter your phone number',
-                validator: (value) {
-                  if (value!.isEmpty) return 'This field is required';
-                  if (value.length < 11) return 'Phone Number Is Not Valid';
-                  String phonePattern = r'^01[0125][0-9]{8}$';
-                  if (!RegExp(phonePattern).hasMatch(value)) {
-                    return 'Please enter a valid phone number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 30),
-              _isLoading
-                  ? CircularProgressIndicator(
-                    color: AppTheme.light.colorScheme.primary,
-                  )
-                  : ElevatedButton(
-                    onPressed: _updateProfile,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.light.colorScheme.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 30,
-                      ),
-                    ),
-                    child: Text(
-                      'Update Profile',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: AppTheme.light.colorScheme.secondary,
-                      ),
-                    ),
-                  ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

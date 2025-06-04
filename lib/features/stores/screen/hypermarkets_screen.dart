@@ -33,9 +33,14 @@ class _HypermarketsScreenState extends State<HypermarketsScreen> {
 
       if (response.statusCode == 200) {
         List<dynamic> storesData = jsonDecode(response.body);
+        print('Fetched storesData: $storesData'); // Log the entire response
         List<Map<String, dynamic>> hypermarkets = [];
         for (var store in storesData) {
-          if (store['category']?.toLowerCase() == 'hypermarkets') {
+          print(
+            'Processing store: ${store['name']}, category: ${store['category']}',
+          ); // Log each store's category
+          if (store['category']?.toLowerCase() == 'hyper markets') {
+            // Changed to 'hyper markets'
             String imagePath =
                 "assets/images/hypermarkets.jpg"; // Default image
             switch (store['name'].toLowerCase()) {

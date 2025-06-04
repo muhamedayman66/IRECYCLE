@@ -6,13 +6,11 @@ import 'package:http/http.dart' as http;
 class DeliveryProfileService {
   static Future<Map<String, dynamic>> getProfile(String email) async {
     try {
-      final queryParameters = {
-        'email': email,
-        'user_type': 'delivery_boy'
-      };
-      
-      final uri = Uri.parse(ApiConstants.getUserProfile)
-          .replace(queryParameters: queryParameters);
+      final queryParameters = {'email': email, 'user_type': 'delivery_boy'};
+
+      final uri = Uri.parse(
+        ApiConstants.getUserProfile,
+      ).replace(queryParameters: queryParameters);
 
       print('Requesting profile from: $uri'); // Debug log
 
@@ -43,7 +41,8 @@ class DeliveryProfileService {
   }
 
   static Future<bool> updateProfile({
-    required String email,
+    // required int id, // ID is no longer the primary identifier for this operation
+    required String email, // Email is now the primary identifier
     required String firstName,
     required String lastName,
     required String gender,
@@ -54,14 +53,21 @@ class DeliveryProfileService {
   }) async {
     try {
       var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('${ApiConstants.baseUrl}/update_profile/'),
+        'POST', // Changed from PUT to POST to match backend
+        Uri.parse(
+          ApiConstants.updateProfile,
+        ), // Using the generic updateProfile endpoint
+        // If you create a new backend endpoint like /api/delivery_boys/update_by_email/,
+        // you'll need to add it to ApiConstants and use it here.
+        // For example: Uri.parse(ApiConstants.deliveryBoyUpdateByEmail(email))
       );
 
       // Add text fields
       request.fields.addAll({
-        'email': email,
-        'user_type': 'delivery_boy',
+        // 'id': id.toString(), // Not sending ID anymore
+        'email': email, // Email is the key identifier
+        'user_type':
+            'delivery_boy', // Crucial for backend to identify user type
         'first_name': firstName,
         'last_name': lastName,
         'gender': gender,

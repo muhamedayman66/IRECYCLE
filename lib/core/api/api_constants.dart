@@ -57,8 +57,10 @@ class ApiConstants {
       '$baseUrl/api/delivery/notifications/$email';
 
   static String markDeliveryNotificationAsRead(int notificationId) =>
-      '$baseUrl/delivery/notifications/$notificationId/mark_as_read/';
+      '$baseUrl/api/delivery/notifications/$notificationId/mark_as_read/';
 
+  static String clearDeliveryNotifications(String email) =>
+      '$baseUrl/api/delivery/notifications/$email/clear/';
   // Order and recycle bag endpoints
   static String userOrders(String email) => '$baseUrl/api/user_orders/$email/';
   static const String placeOrder = '$baseUrl/api/place_order/';

@@ -22,7 +22,8 @@ class _SignUpScreen2State extends State<SignUpScreen2> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController governorateController = TextEditingController();
-  final TextEditingController displayGovernorateController = TextEditingController();
+  final TextEditingController displayGovernorateController =
+      TextEditingController();
 
   String? selectedYear, selectedMonth, selectedDay;
   String? _selectedDate;
@@ -108,8 +109,9 @@ class _SignUpScreen2State extends State<SignUpScreen2> {
 
         if (user == null) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('User not found')));
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('User not found')));
             Navigator.pop(context); // Return to previous screen
           }
           return;
@@ -180,7 +182,7 @@ class _SignUpScreen2State extends State<SignUpScreen2> {
         final updateEndpoint =
             widget.userType.toLowerCase() == 'customer'
                 ? ApiConstants.registerUpdate(id)
-                : '${ApiConstants.baseUrl}/delivery_boys/$id/update/';
+                : ApiConstants.deliveryBoyUpdate(id);
 
         final updateResponse = await http.put(
           Uri.parse(updateEndpoint),
@@ -285,10 +287,14 @@ class _SignUpScreen2State extends State<SignUpScreen2> {
                     ),
                     onChanged: (value) {
                       setState(() {
-                        filteredGovernorates = governorates
-                            .where((gov) =>
-                                gov.toLowerCase().contains(value.toLowerCase()))
-                            .toList();
+                        filteredGovernorates =
+                            governorates
+                                .where(
+                                  (gov) => gov.toLowerCase().contains(
+                                    value.toLowerCase(),
+                                  ),
+                                )
+                                .toList();
                       });
                     },
                   ),
@@ -325,11 +331,16 @@ class _SignUpScreen2State extends State<SignUpScreen2> {
                                       filteredGovernorates[index]
                                           .toLowerCase()
                                           .replaceAll(' ', '_');
-                                  
+
                                   // عرض الاسم للمستخدم بأول حرف كبير
-                                  displayGovernorateController.text = filteredGovernorates[index]
+                                  displayGovernorateController
+                                      .text = filteredGovernorates[index]
                                       .split(' ')
-                                      .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
+                                      .map(
+                                        (word) =>
+                                            word[0].toUpperCase() +
+                                            word.substring(1).toLowerCase(),
+                                      )
                                       .join(' ');
                                 });
                                 Navigator.pop(context);
@@ -629,7 +640,10 @@ class _SignUpScreen2State extends State<SignUpScreen2> {
         ),
         const SizedBox(height: 10),
         TextFormField(
-          controller: controller == governorateController ? displayGovernorateController : controller,
+          controller:
+              controller == governorateController
+                  ? displayGovernorateController
+                  : controller,
           readOnly: true,
           onTap: onTap,
           validator: validator,

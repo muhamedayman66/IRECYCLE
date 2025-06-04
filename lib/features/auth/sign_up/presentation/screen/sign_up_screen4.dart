@@ -40,83 +40,84 @@ class _SignUpScreen4State extends State<SignUpScreen4> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: AppTheme.light.colorScheme.primary,
-                borderRadius: BorderRadius.circular(15),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: AppTheme.light.colorScheme.primary,
-                        width: 1,
-                      ),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.camera_alt,
-                        color: AppTheme.light.colorScheme.primary,
-                      ),
-                      title: Text(
-                        'Take a photo',
-                        style: TextStyle(
-                          color: AppTheme.light.colorScheme.primary,
-                          fontWeight: FontWeight.w500,
+      builder:
+          (context) => Container(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.light.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: AppTheme.light.colorScheme.primary,
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: ListTile(
+                          leading: Icon(
+                            Icons.camera_alt,
+                            color: AppTheme.light.colorScheme.primary,
+                          ),
+                          title: Text(
+                            'Take a photo',
+                            style: TextStyle(
+                              color: AppTheme.light.colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _pickImage(ImageSource.camera);
+                          },
                         ),
                       ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _pickImage(ImageSource.camera);
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: AppTheme.light.colorScheme.primary,
-                        width: 1,
-                      ),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.photo_library,
-                        color: AppTheme.light.colorScheme.primary,
-                      ),
-                      title: Text(
-                        'Choose from gallery',
-                        style: TextStyle(
-                          color: AppTheme.light.colorScheme.primary,
-                          fontWeight: FontWeight.w500,
+                      const SizedBox(height: 16),
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: AppTheme.light.colorScheme.primary,
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: ListTile(
+                          leading: Icon(
+                            Icons.photo_library,
+                            color: AppTheme.light.colorScheme.primary,
+                          ),
+                          title: Text(
+                            'Choose from gallery',
+                            style: TextStyle(
+                              color: AppTheme.light.colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _pickImage(ImageSource.gallery);
+                          },
                         ),
                       ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _pickImage(ImageSource.gallery);
-                      },
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -160,7 +161,11 @@ class _SignUpScreen4State extends State<SignUpScreen4> {
         final updateEndpoint =
             widget.userType == 'customer'
                 ? ApiConstants.registerUpdate(userId)
-                : '${ApiConstants.baseUrl}/delivery_boys/$userId/update/';
+                : ApiConstants.deliveryBoyUpdate(userId);
+
+        print(
+          'Debug: updateEndpoint for PUT request in SignUpScreen4: $updateEndpoint',
+        ); // Diagnostic print
 
         final request = http.MultipartRequest('PUT', Uri.parse(updateEndpoint));
 
